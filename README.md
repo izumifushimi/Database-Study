@@ -2,7 +2,7 @@
 
 根据数据库课件、考试重点和上机 4–8 练习整理的中文学习网站。
 
-[在线学习网站](https://database-study-lab-20261116.izumifushimi.chatgpt.site)（本人登录访问） · [GitHub 仓库](https://github.com/izumifushimi/Database-Study)（私有）
+[打开公开学习网站](https://izumifushimi.github.io/Database-Study/) · [GitHub 公开源码仓库](https://github.com/izumifushimi/Database-Study)
 
 - 6 个课程模块、31 节讲解，包含关系代数、SQL、规范化、Oracle PL/SQL 与数据库设计。
 - 4 组上机练习、32 个任务，提供 MySQL 8.0.16+ 参考解法、建表数据与自评清单。
@@ -25,15 +25,16 @@ npm run dev
 
 ## GitHub Pages
 
-仓库带有 `.github/workflows/pages.yml`，推送 `main` 后自动测试、构建并上传静态站点产物。启用下列设置后，可自动部署 `dist/` 到 Pages。
+本仓库已启用公开的 GitHub Pages。推送 `main` 后，`.github/workflows/pages.yml` 自动测试、构建并将 `dist/` 部署到 https://izumifushimi.github.io/Database-Study/ 。
+
+如需部署到自己的仓库：
 
 1. 将完整项目推送到自己的 GitHub 仓库。
 2. 在仓库 Settings → Pages → Build and deployment 中将 Source 设为 **GitHub Actions**。
-3. 在 Settings → Secrets and variables → Actions → Variables 添加仓库变量 `ENABLE_PAGES`，值为 `true`。
-4. 推送 `main`，或在 Actions 中手动运行 **Build and deploy learning site**。
-5. 工作流完成后，在 Pages 或工作流环境中打开部署 URL。
+3. 推送 `main`，或在 Actions 中手动运行 **Build and deploy learning site**。
+4. 工作流完成后，在 Pages 或工作流环境中打开部署 URL。
 
-所有静态资源采用相对路径，支持 `https://用户名.github.io/仓库名/` 项目路径。私有仓库的 GitHub Pages 可用性由账号套餐决定；若不可用，可使用私有 Sites 站点预览或自行调整仓库发布方式。
+所有静态资源采用相对路径，支持 `https://用户名.github.io/仓库名/` 项目路径。仓库与学习网站均公开，访问网站无需登录。
 
 ## 项目结构
 

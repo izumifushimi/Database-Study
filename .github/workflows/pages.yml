@@ -25,11 +25,9 @@ jobs:
           name: database-study-site
           path: dist
       - uses: actions/upload-pages-artifact@v3
-        if: vars.ENABLE_PAGES == 'true'
         with:
           path: dist
   deploy:
-    if: vars.ENABLE_PAGES == 'true'
     needs: build
     runs-on: ubuntu-latest
     permissions:
