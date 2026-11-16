@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="系统学习数据库原理与应用：31 节课程、SQL 在线实验、PL/SQL 编程与闭卷综合题训练。">
+  <meta name="theme-color" content="#173e35"><title>数据库研习室 · Database Study</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
+  <script defer src="./data.js"></script><script defer src="./app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">跳到正文</a>
+<div class="shell">
+  <aside id="sidebar" class="sidebar" aria-label="主导航">
+    <a class="brand" href="#/home"><span class="brand-mark">▤</span><span>数据库研习室<small>DATABASE STUDY</small></span></a>
+    <div class="side-label">我的学习空间</div>
+    <nav id="main-nav"></nav>
+    <div class="side-line"></div><div class="side-label">课程目录</div><nav id="module-nav"></nav>
+    <div class="side-bottom"><div class="side-note"><span class="pulse"></span>每个概念，都能落到实践。<small>理解原理 · 写出查询 · 完成设计</small></div><a class="about-link" href="#/about">课程说明与使用指南 ↗</a></div>
+  </aside>
+  <div id="scrim" class="scrim"></div>
+  <div class="workspace">
+    <header class="topbar"><div class="top-left"><button class="icon-button menu-toggle" id="menu-toggle" aria-label="打开导航" aria-expanded="false">☰</button><span class="top-title">数据库原理与应用</span><span class="header-separator">/</span><span id="breadcrumb">学习总览</span></div><button id="search-open" class="search-trigger"><span>⌕</span> 搜索知识点 <kbd>⌘ K</kbd></button></header>
+    <main id="main" tabindex="-1"></main>
+    <footer class="footer"><span>数据库研习室</span><span>知识有结构，学习有路径。</span><a href="#/about">使用说明</a></footer>
+  </div>
+</div>
+<dialog id="search-dialog" aria-labelledby="search-label"><div class="search-head"><label id="search-label" class="sr-only" for="search-input">搜索课程知识点</label><span>⌕</span><input id="search-input" placeholder="搜索：候选码、游标、HAVING…" autocomplete="off"><button id="search-close" class="icon-button" aria-label="关闭搜索">×</button></div><div id="search-results" class="search-results"></div><div class="search-foot">输入关键词查找课程与实验 <kbd>ESC 关闭</kbd></div></dialog>
+<div id="toast" role="status" class="toast"></div>
+</body></html>

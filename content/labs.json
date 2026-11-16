@@ -1,0 +1,92 @@
+[
+  {
+    "id": "lab1",
+    "title": "01 · 单表筛选",
+    "goal": "查询计算机系且年龄小于 21 岁的学生，输出 sno、sname、age。",
+    "starter": "SELECT sno, sname, age\nFROM Student\nWHERE -- 补全条件\n;",
+    "answer": "SELECT sno,sname,age FROM Student WHERE dept='计算机' AND age<21;",
+    "hint": "用 AND 同时表达系别和年龄。",
+    "order": false
+  },
+  {
+    "id": "lab2",
+    "title": "02 · 三表连接",
+    "goal": "查询所有已有选课记录的学生姓名、课程名、成绩，输出 sname、cname、grade。",
+    "starter": "SELECT s.sname, c.cname, sc.grade\nFROM Student s\n-- 补全连接\n;",
+    "answer": "SELECT s.sname,c.cname,sc.grade FROM Student s JOIN SC sc ON sc.sno=s.sno JOIN Course c ON c.cno=sc.cno;",
+    "hint": "用 SC 把 Student 与 Course 连接起来，未出分的选课仍应保留。",
+    "order": false
+  },
+  {
+    "id": "lab3",
+    "title": "03 · 分组与 HAVING",
+    "goal": "查询已出分人数至少为 2 的课程，输出 cno、graded_count（非空成绩人数）。",
+    "starter": "SELECT cno, COUNT(grade) AS graded_count\nFROM SC\n-- 补充分组与组条件\n;",
+    "answer": "SELECT cno,COUNT(grade) AS graded_count FROM SC GROUP BY cno HAVING COUNT(grade)>=2;",
+    "hint": "COUNT(grade) 忽略 NULL，分组筛选写 HAVING。",
+    "order": false
+  },
+  {
+    "id": "lab4",
+    "title": "04 · 并列最高分",
+    "goal": "查询数据库原理（C01）的所有最高分学生，输出 sno、grade。",
+    "starter": "SELECT sno, grade FROM SC\nWHERE cno = 'C01'\n-- 补全最高分条件\n;",
+    "answer": "SELECT sno,grade FROM SC WHERE cno='C01' AND grade=(SELECT MAX(grade) FROM SC WHERE cno='C01');",
+    "hint": "用等于 MAX 的子查询，保留并列。",
+    "order": false
+  },
+  {
+    "id": "lab5",
+    "title": "05 · 没有选课的学生",
+    "goal": "查询一门课也没选的学生，输出 sno、sname。",
+    "starter": "SELECT s.sno, s.sname FROM Student s\nWHERE -- 补全无匹配条件\n;",
+    "answer": "SELECT s.sno,s.sname FROM Student s WHERE NOT EXISTS(SELECT 1 FROM SC sc WHERE sc.sno=s.sno);",
+    "hint": "相关子查询可判断该学生是否存在任何选课记录。",
+    "order": false
+  },
+  {
+    "id": "lab6",
+    "title": "06 · 选修全部课程",
+    "goal": "查询选齐 Course 中全部课程的学生，输出 sno、sname。",
+    "starter": "SELECT s.sno, s.sname FROM Student s\nWHERE NOT EXISTS (\n  -- 查找该学生未选的课程\n);",
+    "answer": "SELECT s.sno,s.sname FROM Student s WHERE NOT EXISTS(SELECT 1 FROM Course c WHERE NOT EXISTS(SELECT 1 FROM SC sc WHERE sc.sno=s.sno AND sc.cno=c.cno));",
+    "hint": "不存在一门课程，使该学生没有对应选课记录。",
+    "order": false
+  },
+  {
+    "id": "lab7",
+    "title": "07 · 左连接与空值",
+    "goal": "查询所有学生及其 C01 成绩，输出 sno、sname、grade，未选 C01 的学生也必须出现。",
+    "starter": "SELECT s.sno, s.sname, sc.grade\nFROM Student s\n-- 补全左连接\n;",
+    "answer": "SELECT s.sno,s.sname,sc.grade FROM Student s LEFT JOIN SC sc ON sc.sno=s.sno AND sc.cno='C01';",
+    "hint": "课程条件写在 ON，避免 WHERE 排除空补齐行。",
+    "order": false
+  },
+  {
+    "id": "lab8",
+    "title": "08 · 高于本课程均分",
+    "goal": "查询成绩高于所选课程平均分的选课记录，输出 sno、cno、grade。",
+    "starter": "SELECT sc.sno, sc.cno, sc.grade\nFROM SC sc\nWHERE sc.grade > (\n  -- 该课程的平均分\n);",
+    "answer": "SELECT sc.sno,sc.cno,sc.grade FROM SC sc WHERE sc.grade>(SELECT AVG(t.grade) FROM SC t WHERE t.cno=sc.cno);",
+    "hint": "子查询用课程号与外层关联，AVG 忽略 NULL。",
+    "order": false
+  },
+  {
+    "id": "lab9",
+    "title": "09 · 学分汇总",
+    "goal": "查询所有学生已经获得的总学分，60 分及以上获得课程学分，未获得学分的学生计 0。输出 sno、earned_credit。",
+    "starter": "SELECT s.sno,\n  -- 汇总及格课程的学分\nFROM Student s\n;",
+    "answer": "SELECT s.sno,COALESCE(SUM(CASE WHEN sc.grade>=60 THEN c.credit ELSE 0 END),0) AS earned_credit FROM Student s LEFT JOIN SC sc ON sc.sno=s.sno LEFT JOIN Course c ON c.cno=sc.cno GROUP BY s.sno;",
+    "hint": "用 LEFT JOIN 保留全部学生，用 CASE 区分及格与未及格。",
+    "order": false
+  },
+  {
+    "id": "lab10",
+    "title": "10 · 多字段排序",
+    "goal": "查询已出分的 C01 成绩，输出 sno、grade，按成绩降序，再按学号升序。",
+    "starter": "SELECT sno, grade FROM SC\nWHERE cno = 'C01' AND grade IS NOT NULL\n-- 补全排序\n;",
+    "answer": "SELECT sno,grade FROM SC WHERE cno='C01' AND grade IS NOT NULL ORDER BY grade DESC,sno ASC;",
+    "hint": "ORDER BY grade DESC, sno ASC。",
+    "order": true
+  }
+]

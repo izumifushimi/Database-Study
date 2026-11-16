@@ -1,0 +1,264 @@
+[
+  {
+    "id": "course-case",
+    "title": "学生选课管理系统",
+    "label": "核心综合题",
+    "summary": "从 E-R 设计到查询、游标、存储过程与函数，串起一整道管理系统综合题。",
+    "minutes": 65,
+    "requirement": "一个学生只属于一个系，一个系有多名学生且有一位系主任。学生可以选多门课，课程可以被多名学生选修。每名学生对每门课最多有一条选课记录，成绩可为空，成绩范围为 0～100。课程有课程号、名称、学分；只有成绩达到 60 分才获得学分。",
+    "entities": [
+      [
+        "Dept",
+        "dept · PK",
+        "head"
+      ],
+      [
+        "Student",
+        "sno · PK",
+        "sname / dept · FK / age"
+      ],
+      [
+        "SC",
+        "sno + cno · PK",
+        "两列均为 FK / grade"
+      ],
+      [
+        "Course",
+        "cno · PK",
+        "cname / credit"
+      ]
+    ],
+    "relations": "Dept 1 → n Student；Student 1 → n SC；Course 1 → n SC。",
+    "tasks": [
+      {
+        "title": "1. 设计 E-R 图并转成关系模式",
+        "prompt": "写出实体、联系及其基数，再标注每张表的主键、外键。",
+        "answer": "系与学生为 1:n；学生与课程为 m:n，成绩是选修联系的属性。转换为 Dept(dept,head)、Student(sno,sname,dept,age)、Course(cno,cname,credit)、SC(sno,cno,grade)。Student.dept 引用 Dept.dept；SC 的两列分别引用学生、课程。",
+        "checks": [
+          "实体及标识属性完整",
+          "明确两个方向的基数",
+          "m:n 转为独立联系表，成绩放 SC",
+          "复合主键及外键引用准确"
+        ],
+        "code": ""
+      },
+      {
+        "title": "2. 函数依赖与规范化",
+        "prompt": "若原始大表为 R(sno,sname,age,dept,head,cno,cname,credit,grade)，列出主要依赖并说明如何达到 3NF。",
+        "answer": "sno→sname,age,dept；dept→head；cno→cname,credit；(sno,cno)→grade。候选码为 (sno,cno)。姓名、年龄、系、课程名、学分存在对复合码的部分依赖；系主任还存在通过 dept 的传递依赖。分解为上述四张表，消除这些依赖。按给定依赖，各表均满足 3NF。",
+        "checks": [
+          "给出候选码及最小性",
+          "指出具体部分依赖",
+          "指出 sno→dept→head",
+          "分解后说明码、依赖与无损性"
+        ],
+        "code": ""
+      },
+      {
+        "title": "3. 写建表语句",
+        "prompt": "使用 Oracle 语法建立四张表，设置主键、外键、非空和成绩范围。",
+        "answer": "先建被引用的 Dept、Course，再建 Student 和 SC。NULL 表示未出分，CHECK 并不拒绝 NULL。",
+        "checks": [
+          "父表先建",
+          "SC 复合主键",
+          "所有引用目标正确",
+          "成绩 CHECK 与 NULL 语义正确"
+        ],
+        "code": "CREATE TABLE Dept (\n  dept VARCHAR2(30) PRIMARY KEY,\n  head VARCHAR2(40) NOT NULL\n);\nCREATE TABLE Student (\n  sno VARCHAR2(8) PRIMARY KEY,\n  sname VARCHAR2(40) NOT NULL,\n  dept VARCHAR2(30) NOT NULL REFERENCES Dept(dept),\n  age NUMBER(3) CHECK(age BETWEEN 0 AND 120)\n);\nCREATE TABLE Course (\n  cno VARCHAR2(4) PRIMARY KEY,\n  cname VARCHAR2(60) NOT NULL,\n  credit NUMBER(3,1) NOT NULL CHECK(credit > 0)\n);\nCREATE TABLE SC (\n  sno VARCHAR2(8) REFERENCES Student(sno),\n  cno VARCHAR2(4) REFERENCES Course(cno),\n  grade NUMBER(5,2) CHECK(grade BETWEEN 0 AND 100),\n  PRIMARY KEY(sno,cno)\n);"
+      },
+      {
+        "title": "4. 复杂查询与视图",
+        "prompt": "查询每位学生获得的学分，保留未选课者；再建立课程平均成绩视图。",
+        "answer": "左连接保留全部学生；CASE 只累加及格课程学分。聚合输出的非聚合列写在 GROUP BY 中。视图用左连接保留尚无人选修的课程，平均分为 NULL。",
+        "checks": [
+          "保留所有学生",
+          "仅及格才计学分",
+          "未获得学分计零",
+          "视图按课程分组"
+        ],
+        "code": "SELECT s.sno, s.sname,\n       SUM(CASE WHEN sc.grade >= 60 THEN c.credit ELSE 0 END) AS earned_credit\nFROM Student s\nLEFT JOIN SC sc ON sc.sno = s.sno\nLEFT JOIN Course c ON c.cno = sc.cno\nGROUP BY s.sno, s.sname;\n\nCREATE VIEW CourseStats AS\nSELECT c.cno, c.cname, COUNT(sc.grade) AS graded_count,\n       AVG(sc.grade) AS avg_grade\nFROM Course c LEFT JOIN SC sc ON sc.cno = c.cno\nGROUP BY c.cno, c.cname;"
+      },
+      {
+        "title": "5. 带参数游标的存储过程",
+        "prompt": "创建过程 print_scores，输入学号，逐行输出该学生课程号与成绩。",
+        "answer": "使用参数游标。游标 FOR 循环自动管理 OPEN、FETCH、CLOSE。未出分用文字表达。无选课时循环执行零次。",
+        "checks": [
+          "参数类型引用正确",
+          "游标与输入学号关联",
+          "逐行输出",
+          "不用重复手动打开游标"
+        ],
+        "code": "CREATE OR REPLACE PROCEDURE print_scores (\n  p_sno IN Student.sno%TYPE\n) AS\n  CURSOR c_scores(v_sno Student.sno%TYPE) IS\n    SELECT cno, grade FROM SC WHERE sno = v_sno ORDER BY cno;\nBEGIN\n  FOR r IN c_scores(p_sno) LOOP\n    DBMS_OUTPUT.PUT_LINE(r.cno || ':' ||\n      NVL(TO_CHAR(r.grade), '未出分'));\n  END LOOP;\nEND;\n/"
+      },
+      {
+        "title": "6. 函数、选课过程与边界",
+        "prompt": "创建返回课程平均分的函数，以及为学生选课的过程；处理重复选课，说明事务由谁提交。",
+        "answer": "AVG 忽略未出分成绩。重复选课由复合主键保障，并捕获 DUP_VAL_ON_INDEX。学生或课程不存在会因外键失败，由调用方处理；过程内部不自行 COMMIT。",
+        "checks": [
+          "函数声明 RETURN 并返回结果",
+          "空成绩不进平均分分母",
+          "主键抵御并发重复插入",
+          "过程不擅自提交调用者事务"
+        ],
+        "code": "CREATE OR REPLACE FUNCTION course_average (\n  p_cno IN Course.cno%TYPE\n) RETURN NUMBER AS\n  v_avg NUMBER;\nBEGIN\n  SELECT AVG(grade) INTO v_avg FROM SC WHERE cno = p_cno;\n  RETURN v_avg;\nEND;\n/\nCREATE OR REPLACE PROCEDURE enroll (\n  p_sno IN Student.sno%TYPE,\n  p_cno IN Course.cno%TYPE\n) AS\nBEGIN\n  INSERT INTO SC(sno,cno,grade) VALUES(p_sno,p_cno,NULL);\nEXCEPTION\n  WHEN DUP_VAL_ON_INDEX THEN\n    RAISE_APPLICATION_ERROR(-20002,'该学生已选此课程');\nEND;\n/"
+      }
+    ]
+  },
+  {
+    "id": "library-case",
+    "title": "图书借阅管理系统",
+    "label": "迁移训练",
+    "summary": "区分书目与图书副本，处理重复借阅、在借记录与历史记录。",
+    "minutes": 50,
+    "requirement": "一种书目由 ISBN 唯一标识，有书名和出版社。一种书目可有多个实体副本，副本编号唯一。读者由读者号标识。读者可多次借阅同一副本，每次有独立借阅编号，记录借出日、应还日和归还日；归还日为空表示尚未归还。",
+    "entities": [
+      [
+        "Book",
+        "isbn · PK",
+        "title / publisher"
+      ],
+      [
+        "Copy",
+        "copy_id · PK",
+        "isbn · FK"
+      ],
+      [
+        "Loan",
+        "loan_id · PK",
+        "reader_id · FK / copy_id · FK"
+      ],
+      [
+        "Reader",
+        "reader_id · PK",
+        "name"
+      ]
+    ],
+    "relations": "Book 1 → n Copy；Reader 1 → n Loan；Copy 1 → n Loan（历史）。",
+    "tasks": [
+      {
+        "title": "1. 建模与码",
+        "prompt": "为什么不能只用 (reader_id,copy_id) 作为借阅记录主键？给出关系模式。",
+        "answer": "同一读者可在不同时间多次借同一副本，二元组不能唯一标识借阅事件。用独立 loan_id 作为主键。模式为 Book(isbn,title,publisher)、Copy(copy_id,isbn)、Reader(reader_id,name)、Loan(loan_id,reader_id,copy_id,borrowed_at,due_at,returned_at)。",
+        "checks": [
+          "区分书目和副本",
+          "历史记录独立编号",
+          "借阅表两个外键",
+          "明确 NULL 表示未归还"
+        ],
+        "code": ""
+      },
+      {
+        "title": "2. 查询未归还与逾期",
+        "prompt": "查询截至指定日期仍未归还且已过应还日的借阅，输出读者名、书名和应还日。",
+        "answer": "同时要求 returned_at IS NULL 与 due_at < 截止日期，不能用 returned_at = NULL。日期用明确的 Oracle DATE 字面量。",
+        "checks": [
+          "四表连接完整",
+          "未归还用 IS NULL",
+          "正确比较应还日期",
+          "日期方言一致"
+        ],
+        "code": "SELECT r.name, b.title, l.due_at\nFROM Loan l\nJOIN Reader r ON r.reader_id = l.reader_id\nJOIN Copy cp ON cp.copy_id = l.copy_id\nJOIN Book b ON b.isbn = cp.isbn\nWHERE l.returned_at IS NULL\n  AND l.due_at < DATE '2026-11-16';"
+      },
+      {
+        "title": "3. 统计所有读者的在借数量",
+        "prompt": "包括当前没有在借记录的读者，输出 reader_id、name 和在借数量。",
+        "answer": "把未归还条件放入 ON，保留读者；COUNT(l.loan_id) 统计实际匹配行。",
+        "checks": [
+          "LEFT JOIN 的方向正确",
+          "条件位于 ON",
+          "COUNT 非空主键",
+          "非聚合列分组"
+        ],
+        "code": "SELECT r.reader_id, r.name, COUNT(l.loan_id) AS active_count\nFROM Reader r\nLEFT JOIN Loan l ON l.reader_id = r.reader_id\n AND l.returned_at IS NULL\nGROUP BY r.reader_id, r.name;"
+      },
+      {
+        "title": "4. 归还过程与异常",
+        "prompt": "创建 return_copy(p_loan_id)，只归还尚未归还的记录；若没有更新任何行则抛出业务异常。",
+        "answer": "用单条有条件 UPDATE 修改，然后通过 SQL%ROWCOUNT 判断。避免先查询再修改造成不必要的竞争窗口。过程不提交事务。",
+        "checks": [
+          "只更新未归还记录",
+          "使用 SYSDATE",
+          "检查 SQL%ROWCOUNT",
+          "零行抛业务异常"
+        ],
+        "code": "CREATE OR REPLACE PROCEDURE return_copy (\n  p_loan_id IN Loan.loan_id%TYPE\n) AS\nBEGIN\n  UPDATE Loan SET returned_at = SYSDATE\n  WHERE loan_id = p_loan_id AND returned_at IS NULL;\n  IF SQL%ROWCOUNT = 0 THEN\n    RAISE_APPLICATION_ERROR(-20003,'借阅记录不存在或已经归还');\n  END IF;\nEND;\n/"
+      }
+    ]
+  },
+  {
+    "id": "employee-case",
+    "title": "部门员工与薪资审计",
+    "label": "编程强化",
+    "summary": "练习部门加薪、平均薪资函数和逐行审计触发器。",
+    "minutes": 45,
+    "requirement": "每位员工仅属于一个部门，部门可以有多位员工。员工有员工号、姓名、工资；工资非空且非负。给定部门和比例，为该部门全部员工加薪；工资变更需要记录修改前后的值及时间。使用 Department(dno,dname)、Employee(eno,ename,dno,salary)。",
+    "entities": [
+      [
+        "Department",
+        "dno · PK",
+        "dname"
+      ],
+      [
+        "Employee",
+        "eno · PK",
+        "ename / dno · FK / salary"
+      ],
+      [
+        "SalaryAudit",
+        "eno",
+        "old_salary / new_salary / changed_at"
+      ]
+    ],
+    "relations": "Department 1 → n Employee；Employee 的工资变化产生审计行。",
+    "tasks": [
+      {
+        "title": "1. 表结构与范式",
+        "prompt": "列出主键、外键与主要函数依赖，解释为何不把部门名称重复写在每个员工行上。",
+        "answer": "Department 的主键为 dno；Employee 主键为 eno，dno 是外键。依赖为 dno→dname；eno→ename,dno,salary。若把 dname 放 Employee，会有 eno→dno→dname 的非主属性传递依赖。",
+        "checks": [
+          "主键与外键正确",
+          "写出函数依赖",
+          "识别传递依赖",
+          "工资 NOT NULL 且 CHECK 非负"
+        ],
+        "code": ""
+      },
+      {
+        "title": "2. 加薪过程",
+        "prompt": "输入部门号和加薪比例，例如 0.15 代表 15%；用集合式 SQL 完成更新并输出影响行数。",
+        "answer": "无需为了统一加薪逐行使用游标。比例需校验；若业务不允许负比例，则明确拒绝。输出的行数来自 SQL%ROWCOUNT。",
+        "checks": [
+          "比例非空非负",
+          "关联输入部门",
+          "ROUND 到两位小数",
+          "输出影响行数"
+        ],
+        "code": "CREATE OR REPLACE PROCEDURE raise_salary (\n  p_dno IN Department.dno%TYPE,\n  p_rate IN NUMBER\n) AS\nBEGIN\n  IF p_rate IS NULL OR p_rate < 0 THEN\n    RAISE_APPLICATION_ERROR(-20004,'加薪比例必须非空且非负');\n  END IF;\n  UPDATE Employee SET salary = ROUND(salary * (1+p_rate), 2)\n  WHERE dno = p_dno;\n  DBMS_OUTPUT.PUT_LINE('更新行数：' || SQL%ROWCOUNT);\nEND;\n/"
+      },
+      {
+        "title": "3. 返回平均薪资",
+        "prompt": "创建函数 avg_salary，输入部门号，返回部门平均工资。没有员工时返回 NULL。",
+        "answer": "使用 AVG；不将不存在的平均工资悄悄当成 0。",
+        "checks": [
+          "输入参数类型正确",
+          "AVG 的范围正确",
+          "RETURN 类型及结果",
+          "不错误捕获聚合零行"
+        ],
+        "code": "CREATE OR REPLACE FUNCTION avg_salary (\n  p_dno IN Department.dno%TYPE\n) RETURN NUMBER AS\n  v_avg NUMBER;\nBEGIN\n  SELECT AVG(salary) INTO v_avg FROM Employee WHERE dno = p_dno;\n  RETURN v_avg;\nEND;\n/"
+      },
+      {
+        "title": "4. 薪资审计触发器",
+        "prompt": "建立审计表，并在工资真实发生变化时写入旧值、新值和时间。",
+        "answer": "工资已约定非空，可以直接比较 :OLD.salary 与 :NEW.salary。触发器只插入审计表，不读取正在修改的 Employee 表。原事务回滚时，审计行也回滚。",
+        "checks": [
+          "AFTER UPDATE OF salary",
+          "FOR EACH ROW",
+          "新旧值与时间正确",
+          "只记录真实变化"
+        ],
+        "code": "CREATE TABLE SalaryAudit (\n  eno VARCHAR2(8), old_salary NUMBER(12,2),\n  new_salary NUMBER(12,2), changed_at DATE\n);\nCREATE OR REPLACE TRIGGER trg_salary_audit\nAFTER UPDATE OF salary ON Employee\nFOR EACH ROW\nBEGIN\n  IF :OLD.salary <> :NEW.salary THEN\n    INSERT INTO SalaryAudit VALUES(\n      :NEW.eno,:OLD.salary,:NEW.salary,SYSDATE\n    );\n  END IF;\nEND;\n/"
+      }
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+node_modules/
+source-materials/
+.openai/*.local.*
+.DS_Store
+*.tar.gz
+*.zip
+tmp/

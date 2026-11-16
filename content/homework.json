@@ -1,0 +1,448 @@
+[
+  {
+    "id": "hw4",
+    "title": "上机 4 · 基建与快递管理",
+    "label": "建模与多表查询",
+    "summary": "项目供需、分组筛选、集合差，以及快递单约束和外连接。",
+    "minutes": 65,
+    "dialect": "MySQL 8.0.16+",
+    "schemas": [
+      "construction",
+      "parcel"
+    ],
+    "requirement": "基建系统包含项目、供应商、原材料、供需四个模块。快递系统需要区分人员与快件，同一个人可以兼任寄件人与收件人。基建练习按“每个供应商供应一种原材料”建模；每个项目、供应商、材料组合只保留一条汇总数量记录。",
+    "tasks": [
+      {
+        "title": "基建 1 · 项目名称模糊查询",
+        "prompt": "查询项目名中包含“南京”的项目的所有供需信息。",
+        "answer": "题目筛选的是项目名称，而不是项目地址。项目名与地址即使恰好相同，也不能互换筛选字段。",
+        "code": "SELECT p.*, s.s_number, s.s_name, m.*, pr.pr_count\nFROM projects p\nJOIN provides pr ON pr.pr_p_number = p.p_number\nJOIN suppliers s ON s.s_number = pr.pr_s_number\nJOIN materials m ON m.m_number = pr.pr_m_number\nWHERE p.p_name LIKE '%南京%';",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "construction"
+      },
+      {
+        "title": "基建 2 · 至少三种且每种数量达标",
+        "prompt": "查询至少需要 3 种不同原材料，且每种原材料的供应数量不低于 10 的项目编号与名称。",
+        "answer": "先按项目和材料汇总多供应商的供货数量，再按项目检查材料种数及各材料数量最小值。“每种不低于 10”不能只筛掉不足 10 的材料后再统计，否则会漏检不合格材料。",
+        "code": "SELECT p.p_number, p.p_name\nFROM projects p\nJOIN (\n  SELECT pr_p_number, pr_m_number, SUM(pr_count) AS material_qty\n  FROM provides GROUP BY pr_p_number, pr_m_number\n) x ON x.pr_p_number = p.p_number\nGROUP BY p.p_number, p.p_name\nHAVING COUNT(*) >= 3 AND MIN(x.material_qty) >= 10;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "construction"
+      },
+      {
+        "title": "基建 3 · 使用 A 但没有使用 B",
+        "prompt": "查询使用了“材料1”但没有使用“材料2”的项目编号和名称。",
+        "answer": "用一个 EXISTS 检查有材料1，再用 NOT EXISTS 排除任何材料2。不能只写材料名不等于材料2，因为同一项目还可能有另一条材料2的供需记录。",
+        "code": "SELECT p.p_number,p.p_name FROM projects p\nWHERE EXISTS (\n  SELECT 1 FROM provides pr JOIN materials m ON m.m_number=pr.pr_m_number\n  WHERE pr.pr_p_number=p.p_number AND m.m_name='材料1'\n) AND NOT EXISTS (\n  SELECT 1 FROM provides pr JOIN materials m ON m.m_number=pr.pr_m_number\n  WHERE pr.pr_p_number=p.p_number AND m.m_name='材料2'\n);",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "construction"
+      },
+      {
+        "title": "基建 4 · 供应商信息",
+        "prompt": "查询所有供应商的信息。",
+        "answer": "若只要供应商表字段，无需连接供需表；连接会让有多条供需记录的供应商重复。",
+        "code": "SELECT * FROM suppliers;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "construction"
+      },
+      {
+        "title": "快递 1 · 主外键与单号约束",
+        "prompt": "创建快递管理表，包含主外键。快递单号必须唯一、长度为 10 且以“2301”开始；寄件日期默认为当前日期。",
+        "answer": "人员只存一份，parcels 的 sender_id 和 receiver_id 两个外键分别表达角色；同一个人可以同时出现在两种角色中。单号长度与前缀由 CHECK 约束。完整脚本含建表与样例数据。",
+        "code": "-- MySQL 8.0.16+\nCREATE TABLE people (\n person_id INT PRIMARY KEY, person_name VARCHAR(50) NOT NULL,\n phone VARCHAR(20), address VARCHAR(100), postcode VARCHAR(10)\n);\nCREATE TABLE companies (company_id INT PRIMARY KEY, company_name VARCHAR(30) NOT NULL);\nCREATE TABLE parcels (\n parcel_no VARCHAR(10) PRIMARY KEY,\n company_id INT NOT NULL,\n sender_id INT NOT NULL, receiver_id INT NOT NULL,\n pickup_code VARCHAR(20), logistics VARCHAR(200),\n collected BOOLEAN NOT NULL DEFAULT FALSE,\n sent_date DATE NOT NULL DEFAULT (CURRENT_DATE),\n CHECK(CHAR_LENGTH(parcel_no)=10 AND BINARY LEFT(parcel_no,4)=BINARY '2301'),\n FOREIGN KEY(company_id) REFERENCES companies(company_id),\n FOREIGN KEY(sender_id) REFERENCES people(person_id),\n FOREIGN KEY(receiver_id) REFERENCES people(person_id)\n);\nINSERT INTO people VALUES(1,'学习者A','13800000001','南京东苑','210000'),(2,'学习者B','13800000002','南京西苑','210001'),(3,'学习者C','13800000003','常州','213000');\nINSERT INTO companies VALUES(1,'顺丰'),(2,'中通'),(3,'圆通'),(4,'韵达');\nINSERT INTO parcels(parcel_no,company_id,sender_id,receiver_id,pickup_code,logistics) VALUES('2301000001',1,1,2,'1-001','已到代收点'),('2301000002',2,2,1,'2-001','运输中');\n",
+        "checks": [
+          "人员、公司、快件三类对象完整",
+          "单号主键与长度前缀约束正确",
+          "两个角色外键均引用人员",
+          "日期默认值的 MySQL 版本符合要求"
+        ],
+        "dataset": "parcel"
+      },
+      {
+        "title": "快递 2 · 各公司快件数量",
+        "prompt": "查询顺丰、中通、圆通、韵达等各快递公司的快件数量。",
+        "answer": "从公司表 LEFT JOIN 快件表，可显示零快件的公司；COUNT(parcel_no) 不计空补齐行。",
+        "code": "SELECT c.company_name,COUNT(p.parcel_no) AS parcel_count\nFROM companies c LEFT JOIN parcels p ON p.company_id=c.company_id\nGROUP BY c.company_id,c.company_name;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "parcel"
+      },
+      {
+        "title": "快递 3 · 包含尚未寄件的人员",
+        "prompt": "查询所有寄件人的信息，如果他没有寄件也要包含他的信息。",
+        "answer": "这里把所有已登记人员视作潜在寄件人。若要显示快件信息，用 LEFT JOIN；如果只要人员基本资料，直接查询 people 即可。",
+        "code": "SELECT pe.*,p.parcel_no,p.sent_date\nFROM people pe LEFT JOIN parcels p ON p.sender_id=pe.person_id;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "parcel"
+      }
+    ]
+  },
+  {
+    "id": "hw5",
+    "title": "上机 5 · 销售管理系统",
+    "label": "约束与汇总视图",
+    "summary": "客户、订单、库存、产品四表关联，练习价格统计与销量最高视图。",
+    "minutes": 50,
+    "dialect": "MySQL 8.0.16+",
+    "schemas": [
+      "sales"
+    ],
+    "requirement": "系统包含客户、订单、库存和产品。货号必须是 10 个字符且以 DYKJ 开始，订单日期默认当前日期。练习采用一张订单记录对应一种产品的简化模型；若一张订单包含多种产品，应再分订单头与明细。",
+    "tasks": [
+      {
+        "title": "1 · 建表并插入样例数据",
+        "prompt": "用 SQL 创建表格，设置主外键；货号为 10 个字符且以“DYKJ”开始；订单日期默认为当前日期，并插入数据。",
+        "answer": "产品单价用 DECIMAL，数量用整数，日期使用 ISO 格式。数据中的“货号1”等简写替换为满足长度与前缀要求的正式编号。",
+        "code": "-- MySQL 8.0.16+\nCREATE TABLE customers(c_num VARCHAR(20) PRIMARY KEY,c_name VARCHAR(60) NOT NULL,c_add VARCHAR(100),c_duty VARCHAR(30));\nCREATE TABLE products(\n p_num VARCHAR(10) PRIMARY KEY,p_name VARCHAR(60) NOT NULL,\n p_model VARCHAR(30),p_price DECIMAL(10,2) NOT NULL CHECK(p_price>=0),\n CHECK(CHAR_LENGTH(p_num)=10 AND BINARY LEFT(p_num,4)=BINARY 'DYKJ')\n);\nCREATE TABLE stocks(p_num VARCHAR(10) PRIMARY KEY,stock_count INT NOT NULL CHECK(stock_count>=0),place VARCHAR(50),FOREIGN KEY(p_num) REFERENCES products(p_num));\nCREATE TABLE sales_orders(\n o_num VARCHAR(20) PRIMARY KEY,o_time DATE NOT NULL DEFAULT (CURRENT_DATE),\n c_num VARCHAR(20) NOT NULL,p_num VARCHAR(10) NOT NULL,\n quantity INT NOT NULL CHECK(quantity>0),\n FOREIGN KEY(c_num) REFERENCES customers(c_num),FOREIGN KEY(p_num) REFERENCES products(p_num)\n);\nINSERT INTO customers VALUES('k001','学习者','东苑','001001001'),('k002','张三','东苑','002002002'),('k003','客户A','西苑','003003003');\nINSERT INTO products VALUES('DYKJ000001','材料1','重型',20),('DYKJ000002','材料2','轻型',10),('DYKJ000003','材料3','中型',5);\nINSERT INTO stocks VALUES('DYKJ000001',100,'x1'),('DYKJ000002',200,'x2'),('DYKJ000003',100,'x3');\nINSERT INTO sales_orders VALUES('D001','2024-11-01','k001','DYKJ000001',30),('D002','2024-11-02','k001','DYKJ000002',40),('D003','2024-11-05','k002','DYKJ000001',50),('D004','2024-11-01','k003','DYKJ000002',20);\n",
+        "checks": [
+          "四个模块及主外键完整",
+          "货号长度与前缀约束",
+          "日期默认值正确",
+          "先插父表，再插订单和库存"
+        ],
+        "dataset": "sales"
+      },
+      {
+        "title": "2 · 所有客户相关信息",
+        "prompt": "查询所有客户的所有相关信息。",
+        "answer": "若只要求基本信息，可直接 SELECT * FROM customers；若“相关信息”包含订单、产品、库存，则使用多层 LEFT JOIN 保留未下单客户。以下给出后一种解释。",
+        "code": "SELECT c.*,o.o_num,o.o_time,o.quantity,p.p_num,p.p_name,p.p_price,\n       s.stock_count,s.place\nFROM customers c\nLEFT JOIN sales_orders o ON o.c_num=c.c_num\nLEFT JOIN products p ON p.p_num=o.p_num\nLEFT JOIN stocks s ON s.p_num=p.p_num;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "sales"
+      },
+      {
+        "title": "3 · 客户A已购产品价格",
+        "prompt": "查询客户名为“客户A”的客户所有已购买产品的平均价格、最高价格和最低价格。",
+        "answer": "这里按“购买过的不同产品”的当前单价统计，使用 EXISTS 避免同一产品多次下单造成重复计权。如果题目要求按销量加权平均，应另算 SUM(单价×数量)/SUM(数量)。",
+        "code": "SELECT AVG(p.p_price) AS avg_price,MAX(p.p_price) AS max_price,\n       MIN(p.p_price) AS min_price\nFROM products p\nWHERE EXISTS (\n SELECT 1 FROM sales_orders o JOIN customers c ON c.c_num=o.c_num\n WHERE o.p_num=p.p_num AND c.c_name='客户A'\n);",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "sales"
+      },
+      {
+        "title": "4 · 时间段订单",
+        "prompt": "查询某个时间段内提交的所有订单信息。",
+        "answer": "示例查询 2024 年 11 月 1 日到 4 日。使用左闭右开边界，若将 DATE 升级到 DATETIME，也能保留结束日的全部时间。",
+        "code": "SELECT * FROM sales_orders\nWHERE o_time >= '2024-11-01' AND o_time < '2024-11-05';",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "sales"
+      },
+      {
+        "title": "5 · 总销量最高的产品视图",
+        "prompt": "创建一个视图，显示销售数量最多的产品信息及其库存数。",
+        "answer": "先按产品 SUM(quantity) 得到总销量，再找最高总销量；DENSE_RANK 保留所有并列第一。不能按某一笔订单的最大数量代替产品总销量。",
+        "code": "CREATE VIEW top_selling_products AS\nSELECT p_num,p_name,p_model,p_price,stock_count,sold_qty\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY sold_qty DESC) AS rnk\n  FROM (\n    SELECT p.p_num,p.p_name,p.p_model,p.p_price,\n      COALESCE(s.stock_count,0) AS stock_count,SUM(o.quantity) AS sold_qty\n    FROM products p JOIN sales_orders o ON o.p_num=p.p_num\n    LEFT JOIN stocks s ON s.p_num=p.p_num\n    GROUP BY p.p_num,p.p_name,p.p_model,p.p_price,s.stock_count\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "sales"
+      }
+    ]
+  },
+  {
+    "id": "hw6",
+    "title": "上机 6 · 图书借阅与游标",
+    "label": "统计视图与逐行处理",
+    "summary": "区分借阅次数、总本数、单次本数与种类数，再用游标处理库存和到期提醒。",
+    "minutes": 100,
+    "dialect": "MySQL 8.0.16+",
+    "schemas": [
+      "library",
+      "construction"
+    ],
+    "requirement": "图书库存按种类记录。一个借阅事件可有多种图书，每种可借多本；借阅状态包括已完成、进行中、未借阅。借阅统计只计已完成和进行中。视图中的“最多”保留全部并列结果。第 16 题切换到基建数据集。",
+    "tasks": [
+      {
+        "title": "1 · 图书借阅建模与约束",
+        "prompt": "创建表格并设置主外键；借书证号唯一、长度为 10 且以“1901”开始；性别限“男”“女”，插入数据。一个人一次可借多本、多种类。",
+        "answer": "把“借阅事件”与“每种类明细”分开：borrow 一行代表一次借阅，borrow_items 一行代表该次的一种图书。这样借阅次数、总本数与单次种类数均可准确统计。应还时间 due_at 用于临近到期提醒。演示姓名“学习者”可换为自己姓名。",
+        "code": "-- MySQL 8.0.16+；一次借阅可含多个种类，因此分开借阅事件和明细。\nCREATE TABLE books(b_category VARCHAR(30) PRIMARY KEY,b_count INT NOT NULL CHECK(b_count>=0),b_position VARCHAR(60));\nCREATE TABLE people(\n p_number VARCHAR(10) PRIMARY KEY,p_name VARCHAR(40) NOT NULL,\n p_sex VARCHAR(2) NOT NULL CHECK(p_sex IN ('男','女')),\n CHECK(CHAR_LENGTH(p_number)=10 AND BINARY LEFT(p_number,4)=BINARY '1901')\n);\nCREATE TABLE borrow(\n borrow_id INT PRIMARY KEY,p_number VARCHAR(10) NOT NULL,\n borrowed_at DATETIME NOT NULL,due_at DATETIME NOT NULL,returned_at DATETIME,\n borrow_state VARCHAR(6) NOT NULL CHECK(borrow_state IN ('已完成','进行中','未借阅')),\n FOREIGN KEY(p_number) REFERENCES people(p_number),\n CHECK(due_at>=borrowed_at)\n);\nCREATE TABLE borrow_items(\n borrow_id INT,b_category VARCHAR(30),quantity INT NOT NULL CHECK(quantity>0),\n PRIMARY KEY(borrow_id,b_category),\n FOREIGN KEY(borrow_id) REFERENCES borrow(borrow_id),\n FOREIGN KEY(b_category) REFERENCES books(b_category)\n);\nINSERT INTO books VALUES('哲学类',20,'位置1'),('社会科学',10,'位置2'),('财经管理',30,'位置3'),('历史地理',5,'位置4'),('文化教育',16,'位置5'),('自然科学',7,'位置6');\nINSERT INTO people VALUES('1901000001','学习者','男'),('1901000002','借阅人B','女'),('1901000003','借阅人C','男');\nINSERT INTO borrow VALUES(1,'1901000001','2026-11-01 09:00:00','2026-11-17 09:00:00',NULL,'进行中'),(2,'1901000001','2026-10-14 09:00:00','2026-11-05 09:00:00','2026-11-01 10:00:00','已完成'),(3,'1901000002','2026-09-14 09:00:00','2026-09-30 09:00:00','2026-09-28 10:00:00','已完成');\nINSERT INTO borrow_items VALUES(1,'哲学类',2),(1,'历史地理',1),(2,'历史地理',1),(3,'历史地理',3),(3,'自然科学',2);\n",
+        "checks": [
+          "借阅事件和种类明细分离",
+          "借书证号主键及格式正确",
+          "性别非空且受限",
+          "主外键、数量与应还时间完整"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "2 · 各种类图书库存",
+        "prompt": "查询各种种类图书数量，包括哲学类、社会科学、财经管理、历史地理、文化教育、自然科学等。",
+        "answer": "books 保存当前库存数量，直接查询即可。借阅数量与库存不是同一个统计。",
+        "code": "SELECT b_category,b_count,b_position FROM books;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "3 · 总借阅次数最多的图书种类",
+        "prompt": "创建视图，查询总借阅次数最多的图书种类。",
+        "answer": "一次借阅同一种类有多本，仍只算一次。未借阅状态不计入实际借阅。 视图保留全部并列最大结果。",
+        "code": "CREATE VIEW top_category_visits AS\nSELECT b_category,n\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY n DESC) AS rnk\n  FROM (\n    SELECT i.b_category,COUNT(DISTINCT b.borrow_id) AS n\n    FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id\n    WHERE b.borrow_state IN ('已完成','进行中') GROUP BY i.b_category\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "4 · 总借阅次数最多的借阅人",
+        "prompt": "创建视图，查询总借阅次数最多的借阅人。",
+        "answer": "按借阅事件去重，不要把一次借阅的多种类明细算成多次。 视图保留全部并列最大结果。",
+        "code": "CREATE VIEW top_reader_visits AS\nSELECT p_number,p_name,n\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY n DESC) AS rnk\n  FROM (\n    SELECT p.p_number,p.p_name,COUNT(b.borrow_id) AS n\n    FROM people p JOIN borrow b ON b.p_number=p.p_number\n    WHERE b.borrow_state IN ('已完成','进行中') GROUP BY p.p_number,p.p_name\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "5 · 总借阅本数最多的图书种类",
+        "prompt": "创建视图，查询总借阅本数最多的图书种类。",
+        "answer": "本数使用 SUM(quantity)，次数使用 COUNT，二者需要区分。 视图保留全部并列最大结果。",
+        "code": "CREATE VIEW top_category_books AS\nSELECT b_category,n\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY n DESC) AS rnk\n  FROM (\n    SELECT i.b_category,SUM(i.quantity) AS n\n    FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id\n    WHERE b.borrow_state IN ('已完成','进行中') GROUP BY i.b_category\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "6 · 总借阅本数最多的借阅人",
+        "prompt": "创建视图，查询总借阅本数最多的借阅人。",
+        "answer": "把某人的各次借阅、各明细本数相加，再比较最大值。 视图保留全部并列最大结果。",
+        "code": "CREATE VIEW top_reader_books AS\nSELECT p_number,p_name,n\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY n DESC) AS rnk\n  FROM (\n    SELECT p.p_number,p.p_name,SUM(i.quantity) AS n\n    FROM people p JOIN borrow b ON b.p_number=p.p_number\n    JOIN borrow_items i ON i.borrow_id=b.borrow_id\n    WHERE b.borrow_state IN ('已完成','进行中') GROUP BY p.p_number,p.p_name\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "7 · 单次借阅本数最多的借阅人",
+        "prompt": "创建视图，查询单次借阅本数最多的借阅人。",
+        "answer": "先按一次借阅汇总所有种类的本数，再在借阅事件之间比较；保留借阅编号以展示是哪一次。 视图保留全部并列最大结果。",
+        "code": "CREATE VIEW top_single_reader_books AS\nSELECT p_number,p_name,borrow_id,n\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY n DESC) AS rnk\n  FROM (\n    SELECT p.p_number,p.p_name,b.borrow_id,SUM(i.quantity) AS n\n    FROM people p JOIN borrow b ON b.p_number=p.p_number\n    JOIN borrow_items i ON i.borrow_id=b.borrow_id\n    WHERE b.borrow_state IN ('已完成','进行中') GROUP BY p.p_number,p.p_name,b.borrow_id\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "8 · 单次借阅本数最多的图书种类",
+        "prompt": "创建视图，查询单次借阅本数最多的图书种类。",
+        "answer": "将“单次某种类本数”理解为一次借阅事件中该种类的 quantity，找最大明细本数。如果要求的是“最大总本数那次包含哪些种类”，则应先找事件总本数最大值，再连接其全部明细。 视图保留全部并列最大结果。",
+        "code": "CREATE VIEW top_single_category_books AS\nSELECT borrow_id,b_category,n\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY n DESC) AS rnk\n  FROM (\n    SELECT i.borrow_id,i.b_category,i.quantity AS n\n    FROM borrow_items i JOIN borrow b ON b.borrow_id=i.borrow_id\n    WHERE b.borrow_state IN ('已完成','进行中')\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "9 · 单次借阅种类最多的借阅人",
+        "prompt": "创建视图，查询单次借阅种类最多的借阅人。",
+        "answer": "按借阅事件 COUNT(DISTINCT b_category)，比较种类数，不是比较本数。 视图保留全部并列最大结果。",
+        "code": "CREATE VIEW top_single_reader_categories AS\nSELECT p_number,p_name,borrow_id,n\nFROM (\n  SELECT b.*, DENSE_RANK() OVER(ORDER BY n DESC) AS rnk\n  FROM (\n    SELECT p.p_number,p.p_name,b.borrow_id,COUNT(DISTINCT i.b_category) AS n\n    FROM people p JOIN borrow b ON b.p_number=p.p_number\n    JOIN borrow_items i ON i.borrow_id=b.borrow_id\n    WHERE b.borrow_state IN ('已完成','进行中') GROUP BY p.p_number,p.p_name,b.borrow_id\n  ) b\n) ranked\nWHERE rnk = 1;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "10 · 自己已完成的借阅",
+        "prompt": "查询姓名为“自己名字”的用户所有已完成，即借书且已经还书的借阅信息。",
+        "answer": "用可替换的 @reader_name 参数。按证号关联以区分同名读者；若可能重名，应直接输入借书证号。",
+        "code": "SET @reader_name='学习者';\nSELECT p.p_number,p.p_name,b.*,i.b_category,i.quantity\nFROM people p JOIN borrow b ON b.p_number=p.p_number\nJOIN borrow_items i ON i.borrow_id=b.borrow_id\nWHERE p.p_name=@reader_name AND b.borrow_state='已完成';",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "11 · 包含没有借书的借阅人",
+        "prompt": "查询所有借阅人信息，如果没有借书也要包含。",
+        "answer": "从 people 开始左连接 borrow 与明细。若只需要借阅人基本信息，直接查询 people。",
+        "code": "SELECT p.*,b.borrow_id,b.borrow_state,i.b_category,i.quantity\nFROM people p LEFT JOIN borrow b ON b.p_number=p.p_number\nLEFT JOIN borrow_items i ON i.borrow_id=b.borrow_id;",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "12 · 时间段内借阅记录",
+        "prompt": "查询某个时间段所有借阅信息，包含已完成、进行中。",
+        "answer": "条件同时包含借出时间与状态集合。左闭右开区间避免遗漏结束日时间部分。",
+        "code": "SELECT b.*,i.b_category,i.quantity\nFROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id\nWHERE b.borrowed_at >= '2026-10-01' AND b.borrowed_at < '2026-12-01'\n  AND b.borrow_state IN ('已完成','进行中');",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "13 · 游标检查图书库存",
+        "prompt": "创建游标，查询所有图书库存；少于 3 本时输出“此图书需要补充库存！”。",
+        "answer": "MySQL 的游标放在存储过程内。按“变量→游标→处理器”顺序声明，FETCH 后检查 done 再使用变量。",
+        "code": "DELIMITER //\nCREATE PROCEDURE check_book_stock()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE v_count INT;\n  DECLARE cur CURSOR FOR SELECT b_category,b_count FROM books;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category,v_count;\n    IF done THEN LEAVE read_loop; END IF;\n    IF v_count<3 THEN\n      SELECT CONCAT(v_category,'此图书需要补充库存！') AS message;\n    END IF;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_book_stock();",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "14 · 游标提醒未归还",
+        "prompt": "创建游标，查询所有图书借阅情况；未归还时输出“此图书需要归还！”。",
+        "answer": "使用进行中且 returned_at IS NULL 判定未归还，再连接明细以按种类提醒。",
+        "code": "DELIMITER //\nCREATE PROCEDURE check_unreturned()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE cur CURSOR FOR SELECT i.b_category FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id WHERE b.borrow_state='进行中' AND b.returned_at IS NULL;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT CONCAT(v_category,'此图书需要归还！') AS message;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_unreturned();",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "15 · 游标提醒距离到期不足一天",
+        "prompt": "创建游标，未归还且距离应还时间不足 1 天时，输出“此图书距离归还不到1天！”。",
+        "answer": "此处将“时间小于1天”解释为尚未到期、剩余时间小于一天；due_at 必须存在。已逾期应另做提醒。若题目意指借出时长不足一天，应改为 borrowed_at > NOW()-INTERVAL 1 DAY。",
+        "code": "DELIMITER //\nCREATE PROCEDURE check_due_soon()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE cur CURSOR FOR SELECT i.b_category FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id WHERE b.borrow_state='进行中' AND b.returned_at IS NULL AND b.due_at>NOW() AND b.due_at<NOW()+INTERVAL 1 DAY;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT CONCAT(v_category,'此图书距离归还不到1天！') AS message;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_due_soon();",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "library"
+      },
+      {
+        "title": "16 · 游标检查原材料库存",
+        "prompt": "基建管理系统中，创建游标查询所有原料库存；库存数小于等于 2 时，输出“XXX（原料名）需要补充库存！”。",
+        "answer": "使用 construction 数据集，注意本题阈值是 <=2，与图书题的 <3 表达等价，但应忠实写出各自条件。",
+        "code": "DELIMITER //\nCREATE PROCEDURE check_material_stock()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_name VARCHAR(60);\n  DECLARE v_count INT;\n  DECLARE cur CURSOR FOR SELECT m_name,m_put_count FROM materials;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_name,v_count;\n    IF done THEN LEAVE read_loop; END IF;\n    IF v_count<=2 THEN\n      SELECT CONCAT(v_name,'需要补充库存！') AS message;\n    END IF;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_material_stock();",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "construction"
+      }
+    ]
+  },
+  {
+    "id": "hw78",
+    "title": "上机 7–8 · 存储过程与函数",
+    "label": "业务编程",
+    "summary": "基建项目材料统计、返回材料信息，以及电商供应商模糊查询和购物车排序。",
+    "minutes": 60,
+    "dialect": "MySQL 8.0.16+",
+    "schemas": [
+      "construction",
+      "ecommerce"
+    ],
+    "requirement": "基建系统沿用项目、供应商、原材料与供需表。电商系统包含用户、商品、供应商、订单与购物车。本组使用 MySQL 存储程序，函数返回 JSON 数组表达可能的多条供需记录。",
+    "tasks": [
+      {
+        "title": "基建 1 · 按项目名称统计材料种数",
+        "prompt": "创建存储过程，输入项目名称 ZZZ，打印“ZZZ项目共需要X种原材料”；未找到项目时打印“ZZZ项目还没有记录”。",
+        "answer": "先检查项目是否存在。存在但没有供需记录时，COUNT(DISTINCT) 得到 0；项目不存在才输出未记录。同名项目按输入名称汇总，若要求单一项目，建议改传项目编号。",
+        "code": "DELIMITER //\nCREATE PROCEDURE project_material_count(IN p_project_name VARCHAR(60))\nBEGIN\n  DECLARE v_count INT;\n  IF EXISTS(SELECT 1 FROM projects WHERE p_name=p_project_name) THEN\n    SELECT COUNT(DISTINCT pr.pr_m_number) INTO v_count\n    FROM projects p LEFT JOIN provides pr ON pr.pr_p_number=p.p_number\n    WHERE p.p_name=p_project_name;\n    SELECT CONCAT(p_project_name,'项目共需要',v_count,'种原材料') AS message;\n  ELSE\n    SELECT CONCAT(p_project_name,'项目还没有记录') AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL project_material_count('南京甲');",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "construction"
+      },
+      {
+        "title": "基建 2 · 返回项目原材料信息",
+        "prompt": "创建存储函数，查询“南京甲”所需“原材料A”的所有信息，至少包含项目名、原材料名、单价、供应数量。",
+        "answer": "MySQL 函数不能用普通 SELECT 直接返回多行结果集。这里将每条供需记录转为 JSON 对象，函数返回 JSON 数组；无记录返回 []。如果考试按 Oracle 标准作答，需改为适合其返回类型的函数方案。",
+        "code": "DELIMITER //\nCREATE FUNCTION project_material_info(p_project_name VARCHAR(60),p_material_name VARCHAR(60))\nRETURNS JSON READS SQL DATA\nBEGIN\n  DECLARE v_result JSON;\n  SELECT JSON_ARRAYAGG(JSON_OBJECT(\n    '项目名',p.p_name,'原材料名',m.m_name,\n    '原材料单价',m.m_price,'供应商',pr.pr_s_number,'供应数量',pr.pr_count\n  )) INTO v_result\n  FROM projects p JOIN provides pr ON pr.pr_p_number=p.p_number\n  JOIN materials m ON m.m_number=pr.pr_m_number\n  WHERE p.p_name=p_project_name AND m.m_name=p_material_name;\n  RETURN COALESCE(v_result,JSON_ARRAY());\nEND //\nDELIMITER ;\nSELECT project_material_info('南京甲','原材料A');",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "construction"
+      },
+      {
+        "title": "电商 1 · 商品名称模糊查询供应商",
+        "prompt": "创建存储过程，输入商品名称（模糊），输出提供相关商品的供应商数量；无匹配时输出“没有供应商提供XXX商品”。",
+        "answer": "同一供应商可能有多个匹配商品，使用 COUNT(DISTINCT s_id)。输入作为包含匹配；用户输入的 % 和 _ 在该写法中也保留通配符含义。",
+        "code": "DELIMITER //\nCREATE PROCEDURE find_suppliers(IN p_keyword VARCHAR(60))\nBEGIN\n  DECLARE v_count INT;\n  SELECT COUNT(DISTINCT s.s_id) INTO v_count\n  FROM suppliers s JOIN products p ON p.s_id=s.s_id\n  WHERE p.p_name LIKE CONCAT('%',p_keyword,'%');\n  IF v_count>0 THEN\n    SELECT CONCAT('共找到',v_count,'个供应商提供',p_keyword,'商品!') AS message;\n  ELSE\n    SELECT CONCAT('没有供应商提供',p_keyword,'商品') AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL find_suppliers('手机');",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "ecommerce"
+      },
+      {
+        "title": "电商 2 · 购物车按加入时间降序",
+        "prompt": "创建存储过程，查询某位用户的购物车商品信息，并按商品添加时间降序。",
+        "answer": "输入用户编号，关联购物车与商品。按 added_at DESC 排序；同一时间用 p_id 提供稳定次序。",
+        "code": "DELIMITER //\nCREATE PROCEDURE show_cart(IN p_user_id INT)\nBEGIN\n  SELECT p.p_id,p.p_name,p.price,c.quantity,c.added_at\n  FROM cart c JOIN products p ON p.p_id=c.p_id\n  WHERE c.u_id=p_user_id\n  ORDER BY c.added_at DESC,c.p_id ASC;\nEND //\nDELIMITER ;\nCALL show_cart(1);",
+        "checks": [
+          "字段、连接与过滤条件符合题意",
+          "注意空值、重复与并列结果",
+          "使用当前题组对应的数据库方言"
+        ],
+        "dataset": "ecommerce"
+      }
+    ]
+  }
+]

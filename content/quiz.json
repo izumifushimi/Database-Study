@@ -1,0 +1,548 @@
+[
+  {
+    "id": "q01",
+    "module": "m1",
+    "question": "负责定义、查询和管理数据库的软件是？",
+    "options": [
+      "DB",
+      "DBMS",
+      "DBS",
+      "数据字典"
+    ],
+    "answer": 1,
+    "explanation": "DB 是数据集合，DBMS 是数据库管理软件，DBS 是完整的数据库系统。"
+  },
+  {
+    "id": "q02",
+    "module": "m1",
+    "question": "模式／内模式映像主要支持哪种独立性？",
+    "options": [
+      "逻辑独立性",
+      "物理独立性",
+      "事务独立性",
+      "用户独立性"
+    ],
+    "answer": 1,
+    "explanation": "内模式描述物理存储；改变存储安排后调整模式／内模式映像，逻辑结构可保持稳定。"
+  },
+  {
+    "id": "q03",
+    "module": "m1",
+    "question": "数据模型的三个组成部分是？",
+    "options": [
+      "表、行、列",
+      "实体、属性、联系",
+      "数据结构、数据操作、完整性约束",
+      "模式、视图、用户"
+    ],
+    "answer": 2,
+    "explanation": "实体、属性、联系是概念模型中的基本元素；数据模型更一般的组成是结构、操作和约束。"
+  },
+  {
+    "id": "q04",
+    "module": "m1",
+    "question": "一个部门有多个职工，每个职工只属于一个部门，这是？",
+    "options": [
+      "1:1",
+      "1:n",
+      "m:n",
+      "无法判断"
+    ],
+    "answer": 1,
+    "explanation": "从部门到职工是一对多，从职工到部门是多对一。"
+  },
+  {
+    "id": "q05",
+    "module": "m2",
+    "question": "候选码与超码的关键差别在于？",
+    "options": [
+      "候选码只能有一列",
+      "候选码允许重复",
+      "候选码不含多余属性",
+      "超码必须是外键"
+    ],
+    "answer": 2,
+    "explanation": "候选码是最小超码；它可以由多个属性组成。"
+  },
+  {
+    "id": "q06",
+    "module": "m2",
+    "question": "R 有 3 行 2 列，S 有 4 行 3 列。R×S 有？",
+    "options": [
+      "7 行 5 列",
+      "12 行 6 列",
+      "12 行 5 列",
+      "7 行 6 列"
+    ],
+    "answer": 2,
+    "explanation": "笛卡尔积的行数相乘，列数相加。"
+  },
+  {
+    "id": "q07",
+    "module": "m2",
+    "question": "理论关系代数中，投影操作会？",
+    "options": [
+      "只选择行",
+      "选择列并去除重复元组",
+      "保留所有重复行",
+      "自动排序"
+    ],
+    "answer": 1,
+    "explanation": "π 选择属性列，关系结果按集合语义去重；SQL 需 SELECT DISTINCT 对应。"
+  },
+  {
+    "id": "q08",
+    "module": "m2",
+    "question": "自然连接会在什么属性上比较相等？",
+    "options": [
+      "任意一个属性",
+      "主键属性",
+      "全部同名属性",
+      "第一列"
+    ],
+    "answer": 2,
+    "explanation": "自然连接在全部同名属性上做等值匹配，并合并同名列。"
+  },
+  {
+    "id": "q09",
+    "module": "m2",
+    "question": "查询“选了所有必修课的学生”最直接对应哪种关系代数运算？",
+    "options": [
+      "并",
+      "差",
+      "除",
+      "笛卡尔积"
+    ],
+    "answer": 2,
+    "explanation": "除法用于表示覆盖全部指定 Y 的 X。"
+  },
+  {
+    "id": "q10",
+    "module": "m2",
+    "question": "SC 的主键为 (sno,cno)，sno 和 cno 分别引用学生和课程。哪项正确？",
+    "options": [
+      "主键不能包含外键",
+      "sno 和 cno 分别是外键",
+      "sno 单独必然是候选码",
+      "cno 必须唯一"
+    ],
+    "answer": 1,
+    "explanation": "复合主键的组成列可以各自是外键；单独 sno 或 cno 不一定唯一。"
+  },
+  {
+    "id": "q11",
+    "module": "m4",
+    "question": "要查询未出分记录，正确条件为？",
+    "options": [
+      "grade = NULL",
+      "grade <> NULL",
+      "grade IS NULL",
+      "grade = 0"
+    ],
+    "answer": 2,
+    "explanation": "与 NULL 的普通比较是 UNKNOWN，查询缺失值用 IS NULL。"
+  },
+  {
+    "id": "q12",
+    "module": "m4",
+    "question": "SC 的 grade 值为 80、NULL、100。COUNT(grade) 和 AVG(grade) 是？",
+    "options": [
+      "3 和 60",
+      "2 和 90",
+      "3 和 90",
+      "2 和 60"
+    ],
+    "answer": 1,
+    "explanation": "COUNT(grade) 和 AVG(grade) 都忽略 NULL，平均为 (80+100)/2。"
+  },
+  {
+    "id": "q13",
+    "module": "m4",
+    "question": "按课程筛选“平均成绩至少 80”的组，应使用？",
+    "options": [
+      "WHERE AVG(grade)>=80",
+      "HAVING AVG(grade)>=80",
+      "ORDER BY grade>=80",
+      "WHERE COUNT(*)>=80"
+    ],
+    "answer": 1,
+    "explanation": "聚合条件用于筛选组，应写 HAVING；WHERE 在分组前筛选行。"
+  },
+  {
+    "id": "q14",
+    "module": "m4",
+    "question": "保留全部学生及其选课记录，包括未选课学生，应使用？",
+    "options": [
+      "Student INNER JOIN SC",
+      "Student LEFT JOIN SC",
+      "SC LEFT JOIN Student",
+      "CROSS JOIN"
+    ],
+    "answer": 1,
+    "explanation": "左外连接保留左表所有行，右表没有匹配时补 NULL。"
+  },
+  {
+    "id": "q15",
+    "module": "m4",
+    "question": "LEFT JOIN 后统计真实选课数，按学生分组，应优先使用？",
+    "options": [
+      "COUNT(*)",
+      "COUNT(sc.cno)",
+      "SUM(s.sno)",
+      "AVG(*)"
+    ],
+    "answer": 1,
+    "explanation": "COUNT(*) 会计入空补齐的行；sc.cno 非空才代表有真实选课记录。"
+  },
+  {
+    "id": "q16",
+    "module": "m4",
+    "question": "同一课程有两名学生并列最高分，使用 grade=(SELECT MAX(...)) 会？",
+    "options": [
+      "仅返回第一名",
+      "返回两名",
+      "报错",
+      "随机返回一名"
+    ],
+    "answer": 1,
+    "explanation": "与最大值相等的所有行都会保留，适合未指定并列规则的最高分题。"
+  },
+  {
+    "id": "q17",
+    "module": "m4",
+    "question": "标准 LIKE 中匹配任意一个字符的通配符是？",
+    "options": [
+      "%",
+      "_",
+      "*",
+      "[0-9]"
+    ],
+    "answer": 1,
+    "explanation": "下划线匹配一个字符，百分号匹配任意长度字符串。"
+  },
+  {
+    "id": "q18",
+    "module": "m4",
+    "question": "CHECK(grade BETWEEN 0 AND 100) 是否能独自拒绝 NULL？",
+    "options": [
+      "能",
+      "不能，还需要 NOT NULL",
+      "只有主键列不能",
+      "取决于 ORDER BY"
+    ],
+    "answer": 1,
+    "explanation": "CHECK 接受 TRUE 或 UNKNOWN。NULL 产生 UNKNOWN，若要求有值需 NOT NULL。"
+  },
+  {
+    "id": "q19",
+    "module": "m4",
+    "question": "UNION 与 UNION ALL 的主要差别是？",
+    "options": [
+      "UNION ALL 自动排序",
+      "UNION 去重，UNION ALL 保留重复",
+      "UNION 只能连接表",
+      "两者没有区别"
+    ],
+    "answer": 1,
+    "explanation": "集合并采用去重语义，UNION ALL 则保留各查询结果中的重复。"
+  },
+  {
+    "id": "q20",
+    "module": "m4",
+    "question": "删除一个普通视图会？",
+    "options": [
+      "删除其基表",
+      "删除视图定义，保留基表",
+      "清空基表数据",
+      "删除基表索引"
+    ],
+    "answer": 1,
+    "explanation": "普通视图是虚拟表，删除视图不删除基表。"
+  },
+  {
+    "id": "q21",
+    "module": "m4",
+    "question": "WITH CHECK OPTION 的作用是？",
+    "options": [
+      "允许任意视图更新",
+      "保证通过视图写入的数据满足视图条件",
+      "创建索引",
+      "加速聚合"
+    ],
+    "answer": 1,
+    "explanation": "它约束可更新视图中的写入结果仍满足视图的过滤条件。"
+  },
+  {
+    "id": "q22",
+    "module": "m4",
+    "question": "索引可能产生的代价是？",
+    "options": [
+      "增加写入维护与存储开销",
+      "让主键可重复",
+      "自动删除 NULL",
+      "取消外键"
+    ],
+    "answer": 0,
+    "explanation": "索引有空间和维护成本，不能无条件为每个字段建立。"
+  },
+  {
+    "id": "q23",
+    "module": "m5",
+    "question": "R(A,B,C)，F={A→B}。哪一项是候选码？",
+    "options": [
+      "A",
+      "B",
+      "AC",
+      "ABC"
+    ],
+    "answer": 2,
+    "explanation": "C 不可由其他属性推出，AC 的闭包为 ABC；A 或 C 单独均不足，ABC 含多余 B。"
+  },
+  {
+    "id": "q24",
+    "module": "m5",
+    "question": "若候选码为 AB，且 A→C，C 为非主属性，则 C 对 AB 是？",
+    "options": [
+      "完全依赖",
+      "部分依赖",
+      "无依赖",
+      "多值依赖"
+    ],
+    "answer": 1,
+    "explanation": "AB 的真子集 A 已能决定 C，所以 C 部分依赖于 AB。"
+  },
+  {
+    "id": "q25",
+    "module": "m5",
+    "question": "候选码为 sno，存在 sno→dept、dept→head。head 是非主属性，该模式至少可能违反？",
+    "options": [
+      "1NF",
+      "2NF 的部分依赖要求",
+      "3NF",
+      "实体完整性"
+    ],
+    "answer": 2,
+    "explanation": "dept 非超码且决定非主属性 head，形成对 sno 的传递依赖；这是 3NF 问题。"
+  },
+  {
+    "id": "q26",
+    "module": "m5",
+    "question": "主属性指？",
+    "options": [
+      "只出现在选定主键中的属性",
+      "属于任一候选码的属性",
+      "所有有索引的属性",
+      "所有非空属性"
+    ],
+    "answer": 1,
+    "explanation": "主属性要看全部候选码的并集，不能只看某个主码。"
+  },
+  {
+    "id": "q27",
+    "module": "m5",
+    "question": "BCNF 对每个非平凡函数依赖 X→Y 要求？",
+    "options": [
+      "Y 必为主属性",
+      "X 必为超码",
+      "X 必为单属性",
+      "Y 必为外键"
+    ],
+    "answer": 1,
+    "explanation": "BCNF 要求每个非平凡依赖的决定因素为超码，比 3NF 更严格。"
+  },
+  {
+    "id": "q28",
+    "module": "m5",
+    "question": "只在依赖左侧出现、从未出现在右侧的属性一定？",
+    "options": [
+      "单独就是候选码",
+      "必须包含于每个候选码",
+      "是非主属性",
+      "可以删除"
+    ],
+    "answer": 1,
+    "explanation": "它无法从其他属性推出，所以任何候选码必须含它，但还需闭包检查是否足够。"
+  },
+  {
+    "id": "q29",
+    "module": "m5",
+    "question": "无损连接最关心什么？",
+    "options": [
+      "表数更少",
+      "连接后能恢复原关系且不产生伪元组",
+      "列名更短",
+      "查询一定更快"
+    ],
+    "answer": 1,
+    "explanation": "无损性是信息保持要求，和性能、依赖保持是不同问题。"
+  },
+  {
+    "id": "q30",
+    "module": "m6",
+    "question": "PL/SQL 中对变量赋值的符号是？",
+    "options": [
+      "=",
+      "==",
+      ":=",
+      "=>"
+    ],
+    "answer": 2,
+    "explanation": ":= 用于赋值，= 用于比较，=> 可用于命名参数传递。"
+  },
+  {
+    "id": "q31",
+    "module": "m6",
+    "question": "普通 SELECT INTO 返回零行时会？",
+    "options": [
+      "变量自动为零",
+      "触发 NO_DATA_FOUND",
+      "触发 TOO_MANY_ROWS",
+      "自动继续且没有异常"
+    ],
+    "answer": 1,
+    "explanation": "没有 BULK COLLECT 的 SELECT INTO 要求恰好一行。"
+  },
+  {
+    "id": "q32",
+    "module": "m6",
+    "question": "SELECT COUNT(*) INTO v_n FROM SC WHERE 1=0 会？",
+    "options": [
+      "触发 NO_DATA_FOUND",
+      "v_n 为 NULL",
+      "v_n 为 0",
+      "触发 TOO_MANY_ROWS"
+    ],
+    "answer": 2,
+    "explanation": "不带 GROUP BY 的聚合查询返回一行，即使没有匹配记录，COUNT 也为 0。"
+  },
+  {
+    "id": "q33",
+    "module": "m6",
+    "question": "显式游标循环中，正确的次序是？",
+    "options": [
+      "输出→FETCH→退出判断",
+      "FETCH→退出判断→处理记录",
+      "退出判断→CLOSE→FETCH",
+      "OPEN→CLOSE→输出"
+    ],
+    "answer": 1,
+    "explanation": "先提取再判断是否成功，失败后立即退出，避免重复或无效处理。"
+  },
+  {
+    "id": "q34",
+    "module": "m6",
+    "question": "游标 FOR 循环会自动完成？",
+    "options": [
+      "只 OPEN",
+      "只 CLOSE",
+      "OPEN、FETCH 和 CLOSE",
+      "COMMIT"
+    ],
+    "answer": 2,
+    "explanation": "游标 FOR 循环自动管理游标生命周期，但不会替你提交事务。"
+  },
+  {
+    "id": "q35",
+    "module": "m6",
+    "question": "Student.sname%TYPE 用于？",
+    "options": [
+      "取得姓名值",
+      "沿用 sname 的数据类型",
+      "建立外键",
+      "遍历学生"
+    ],
+    "answer": 1,
+    "explanation": "%TYPE 是类型引用；%ROWTYPE 则可引用整行记录结构。"
+  },
+  {
+    "id": "q36",
+    "module": "m6",
+    "question": "过程向调用者输出数量，适合使用哪种参数？",
+    "options": [
+      "IN",
+      "OUT",
+      "PRIVATE",
+      "RETURN NUMBER 参数"
+    ],
+    "answer": 1,
+    "explanation": "OUT 参数把结果带回调用者；函数的返回类型是另一种机制。"
+  },
+  {
+    "id": "q37",
+    "module": "m6",
+    "question": "以下哪项是函数所必需的？",
+    "options": [
+      "手工 OPEN 游标",
+      "RETURN 类型和正常路径的返回值",
+      "COMMIT",
+      "OUT 参数"
+    ],
+    "answer": 1,
+    "explanation": "函数通过 RETURN 返回值；它不一定需要游标或 OUT 参数。"
+  },
+  {
+    "id": "q38",
+    "module": "m6",
+    "question": "Oracle 行级 UPDATE 触发器中，修改前的成绩写为？",
+    "options": [
+      "NEW.grade",
+      ":NEW.grade",
+      ":OLD.grade",
+      "OLD(grade)"
+    ],
+    "answer": 2,
+    "explanation": "行级触发器体使用 :OLD 引用修改前的值，:NEW 引用修改后的值。"
+  },
+  {
+    "id": "q39",
+    "module": "m6",
+    "question": "Oracle 普通行级触发器读取正在修改的同一张表，可能导致？",
+    "options": [
+      "自动提交",
+      "变异表错误 ORA-04091",
+      "自动去重",
+      "自动建立索引"
+    ],
+    "answer": 1,
+    "explanation": "跨行汇总应考虑语句阶段或复合触发器，不能直接在普通行触发器中重新查询本表。"
+  },
+  {
+    "id": "q40",
+    "module": "m7",
+    "question": "学生与课程为 m:n，成绩属于选修联系，常见转换是？",
+    "options": [
+      "把全部课程号塞进学生表一列",
+      "建立 SC(sno,cno,grade)",
+      "把学生姓名当课程主键",
+      "删除联系属性"
+    ],
+    "answer": 1,
+    "explanation": "多对多联系独立成表，带上两端实体码和联系属性。"
+  },
+  {
+    "id": "q41",
+    "module": "m7",
+    "question": "从 E-R 模型转换到关系模式属于？",
+    "options": [
+      "需求分析",
+      "概念设计",
+      "逻辑结构设计",
+      "运行维护"
+    ],
+    "answer": 2,
+    "explanation": "概念设计产生 E-R 模型；逻辑设计把它转换为关系模式并规范化。"
+  },
+  {
+    "id": "q42",
+    "module": "m7",
+    "question": "部门与职工为 1:n，通常把哪个外键放到哪张表？",
+    "options": [
+      "职工号放部门表",
+      "部门号放职工表",
+      "两表均无外键",
+      "两个编号都放姓名列"
+    ],
+    "answer": 1,
+    "explanation": "一端的码放在多端，才能让每个职工指向所属部门。"
+  }
+]
