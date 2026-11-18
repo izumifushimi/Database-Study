@@ -336,7 +336,7 @@
         "title": "13 · 游标检查图书库存",
         "prompt": "创建游标，查询所有图书库存；少于 3 本时输出“此图书需要补充库存！”。",
         "answer": "MySQL 的游标放在存储过程内。按“变量→游标→处理器”顺序声明，FETCH 后检查 done 再使用变量。",
-        "code": "DELIMITER //\nCREATE PROCEDURE check_book_stock()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE v_count INT;\n  DECLARE cur CURSOR FOR SELECT b_category,b_count FROM books;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category,v_count;\n    IF done THEN LEAVE read_loop; END IF;\n    IF v_count<3 THEN\n      SELECT CONCAT(v_category,'此图书需要补充库存！') AS message;\n    END IF;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_book_stock();",
+        "code": "DROP PROCEDURE IF EXISTS check_book_stock;\nDELIMITER //\nCREATE PROCEDURE check_book_stock()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE v_count INT;\n  DECLARE cur CURSOR FOR SELECT b_category,b_count FROM books;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category,v_count;\n    IF done THEN LEAVE read_loop; END IF;\n    IF v_count<3 THEN\n      SELECT CONCAT(v_category,'此图书需要补充库存！') AS message;\n    END IF;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_book_stock();",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",
@@ -348,7 +348,7 @@
         "title": "14 · 游标提醒未归还",
         "prompt": "创建游标，查询所有图书借阅情况；未归还时输出“此图书需要归还！”。",
         "answer": "使用进行中且 returned_at IS NULL 判定未归还，再连接明细以按种类提醒。",
-        "code": "DELIMITER //\nCREATE PROCEDURE check_unreturned()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE cur CURSOR FOR SELECT i.b_category FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id WHERE b.borrow_state='进行中' AND b.returned_at IS NULL;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT CONCAT(v_category,'此图书需要归还！') AS message;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_unreturned();",
+        "code": "DROP PROCEDURE IF EXISTS check_unreturned;\nDELIMITER //\nCREATE PROCEDURE check_unreturned()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE cur CURSOR FOR SELECT i.b_category FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id WHERE b.borrow_state='进行中' AND b.returned_at IS NULL;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT CONCAT(v_category,'此图书需要归还！') AS message;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_unreturned();",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",
@@ -360,7 +360,7 @@
         "title": "15 · 游标提醒距离到期不足一天",
         "prompt": "创建游标，未归还且距离应还时间不足 1 天时，输出“此图书距离归还不到1天！”。",
         "answer": "此处将“时间小于1天”解释为尚未到期、剩余时间小于一天；due_at 必须存在。已逾期应另做提醒。若题目意指借出时长不足一天，应改为 borrowed_at > NOW()-INTERVAL 1 DAY。",
-        "code": "DELIMITER //\nCREATE PROCEDURE check_due_soon()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE cur CURSOR FOR SELECT i.b_category FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id WHERE b.borrow_state='进行中' AND b.returned_at IS NULL AND b.due_at>NOW() AND b.due_at<NOW()+INTERVAL 1 DAY;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT CONCAT(v_category,'此图书距离归还不到1天！') AS message;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_due_soon();",
+        "code": "DROP PROCEDURE IF EXISTS check_due_soon;\nDELIMITER //\nCREATE PROCEDURE check_due_soon()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_category VARCHAR(30);\n  DECLARE cur CURSOR FOR SELECT i.b_category FROM borrow b JOIN borrow_items i ON i.borrow_id=b.borrow_id WHERE b.borrow_state='进行中' AND b.returned_at IS NULL AND b.due_at>NOW() AND b.due_at<NOW()+INTERVAL 1 DAY;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_category;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT CONCAT(v_category,'此图书距离归还不到1天！') AS message;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_due_soon();",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",
@@ -372,7 +372,7 @@
         "title": "16 · 游标检查原材料库存",
         "prompt": "基建管理系统中，创建游标查询所有原料库存；库存数小于等于 2 时，输出“XXX（原料名）需要补充库存！”。",
         "answer": "使用 construction 数据集，注意本题阈值是 <=2，与图书题的 <3 表达等价，但应忠实写出各自条件。",
-        "code": "DELIMITER //\nCREATE PROCEDURE check_material_stock()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_name VARCHAR(60);\n  DECLARE v_count INT;\n  DECLARE cur CURSOR FOR SELECT m_name,m_put_count FROM materials;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_name,v_count;\n    IF done THEN LEAVE read_loop; END IF;\n    IF v_count<=2 THEN\n      SELECT CONCAT(v_name,'需要补充库存！') AS message;\n    END IF;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_material_stock();",
+        "code": "DROP PROCEDURE IF EXISTS check_material_stock;\nDELIMITER //\nCREATE PROCEDURE check_material_stock()\nBEGIN\n  DECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_name VARCHAR(60);\n  DECLARE v_count INT;\n  DECLARE cur CURSOR FOR SELECT m_name,m_put_count FROM materials;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN cur;\n  read_loop: LOOP\n    FETCH cur INTO v_name,v_count;\n    IF done THEN LEAVE read_loop; END IF;\n    IF v_count<=2 THEN\n      SELECT CONCAT(v_name,'需要补充库存！') AS message;\n    END IF;\n  END LOOP;\n  CLOSE cur;\nEND //\nDELIMITER ;\nCALL check_material_stock();",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",
@@ -399,7 +399,7 @@
         "title": "基建 1 · 按项目名称统计材料种数",
         "prompt": "创建存储过程，输入项目名称 ZZZ，打印“ZZZ项目共需要X种原材料”；未找到项目时打印“ZZZ项目还没有记录”。",
         "answer": "先检查项目是否存在。存在但没有供需记录时，COUNT(DISTINCT) 得到 0；项目不存在才输出未记录。同名项目按输入名称汇总，若要求单一项目，建议改传项目编号。",
-        "code": "DELIMITER //\nCREATE PROCEDURE project_material_count(IN p_project_name VARCHAR(60))\nBEGIN\n  DECLARE v_count INT;\n  IF EXISTS(SELECT 1 FROM projects WHERE p_name=p_project_name) THEN\n    SELECT COUNT(DISTINCT pr.pr_m_number) INTO v_count\n    FROM projects p LEFT JOIN provides pr ON pr.pr_p_number=p.p_number\n    WHERE p.p_name=p_project_name;\n    SELECT CONCAT(p_project_name,'项目共需要',v_count,'种原材料') AS message;\n  ELSE\n    SELECT CONCAT(p_project_name,'项目还没有记录') AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL project_material_count('南京甲');",
+        "code": "DROP PROCEDURE IF EXISTS project_material_count;\nDELIMITER //\nCREATE PROCEDURE project_material_count(IN p_project_name VARCHAR(60))\nBEGIN\n  DECLARE v_count INT;\n  IF EXISTS(SELECT 1 FROM projects WHERE p_name=p_project_name) THEN\n    SELECT COUNT(DISTINCT pr.pr_m_number) INTO v_count\n    FROM projects p LEFT JOIN provides pr ON pr.pr_p_number=p.p_number\n    WHERE p.p_name=p_project_name;\n    SELECT CONCAT(p_project_name,'项目共需要',v_count,'种原材料') AS message;\n  ELSE\n    SELECT CONCAT(p_project_name,'项目还没有记录') AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL project_material_count('南京甲');",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",
@@ -410,8 +410,8 @@
       {
         "title": "基建 2 · 返回项目原材料信息",
         "prompt": "创建存储函数，查询“南京甲”所需“原材料A”的所有信息，至少包含项目名、原材料名、单价、供应数量。",
-        "answer": "MySQL 函数不能用普通 SELECT 直接返回多行结果集。这里将每条供需记录转为 JSON 对象，函数返回 JSON 数组；无记录返回 []。如果考试按 Oracle 标准作答，需改为适合其返回类型的函数方案。",
-        "code": "DELIMITER //\nCREATE FUNCTION project_material_info(p_project_name VARCHAR(60),p_material_name VARCHAR(60))\nRETURNS JSON READS SQL DATA\nBEGIN\n  DECLARE v_result JSON;\n  SELECT JSON_ARRAYAGG(JSON_OBJECT(\n    '项目名',p.p_name,'原材料名',m.m_name,\n    '原材料单价',m.m_price,'供应商',pr.pr_s_number,'供应数量',pr.pr_count\n  )) INTO v_result\n  FROM projects p JOIN provides pr ON pr.pr_p_number=p.p_number\n  JOIN materials m ON m.m_number=pr.pr_m_number\n  WHERE p.p_name=p_project_name AND m.m_name=p_material_name;\n  RETURN COALESCE(v_result,JSON_ARRAY());\nEND //\nDELIMITER ;\nSELECT project_material_info('南京甲','原材料A');",
+        "answer": "MySQL 函数不能直接返回普通多行 SELECT 结果集。这里用 JSON_ARRAYAGG 将供需记录组合为 JSON 数组，无记录时返回 []。函数参数是输入参数，RETURNS JSON 声明返回类型；读取表时声明 READS SQL DATA。",
+        "code": "DROP FUNCTION IF EXISTS project_material_info;\nDELIMITER //\nCREATE FUNCTION project_material_info(p_project_name VARCHAR(60),p_material_name VARCHAR(60))\nRETURNS JSON READS SQL DATA\nBEGIN\n  DECLARE v_result JSON;\n  SELECT JSON_ARRAYAGG(JSON_OBJECT(\n    '项目名',p.p_name,'原材料名',m.m_name,\n    '原材料单价',m.m_price,'供应商',pr.pr_s_number,'供应数量',pr.pr_count\n  )) INTO v_result\n  FROM projects p JOIN provides pr ON pr.pr_p_number=p.p_number\n  JOIN materials m ON m.m_number=pr.pr_m_number\n  WHERE p.p_name=p_project_name AND m.m_name=p_material_name;\n  RETURN COALESCE(v_result,JSON_ARRAY());\nEND //\nDELIMITER ;\nSELECT project_material_info('南京甲','原材料A');",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",
@@ -423,7 +423,7 @@
         "title": "电商 1 · 商品名称模糊查询供应商",
         "prompt": "创建存储过程，输入商品名称（模糊），输出提供相关商品的供应商数量；无匹配时输出“没有供应商提供XXX商品”。",
         "answer": "同一供应商可能有多个匹配商品，使用 COUNT(DISTINCT s_id)。输入作为包含匹配；用户输入的 % 和 _ 在该写法中也保留通配符含义。",
-        "code": "DELIMITER //\nCREATE PROCEDURE find_suppliers(IN p_keyword VARCHAR(60))\nBEGIN\n  DECLARE v_count INT;\n  SELECT COUNT(DISTINCT s.s_id) INTO v_count\n  FROM suppliers s JOIN products p ON p.s_id=s.s_id\n  WHERE p.p_name LIKE CONCAT('%',p_keyword,'%');\n  IF v_count>0 THEN\n    SELECT CONCAT('共找到',v_count,'个供应商提供',p_keyword,'商品!') AS message;\n  ELSE\n    SELECT CONCAT('没有供应商提供',p_keyword,'商品') AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL find_suppliers('手机');",
+        "code": "DROP PROCEDURE IF EXISTS find_suppliers;\nDELIMITER //\nCREATE PROCEDURE find_suppliers(IN p_keyword VARCHAR(60))\nBEGIN\n  DECLARE v_count INT;\n  SELECT COUNT(DISTINCT s.s_id) INTO v_count\n  FROM suppliers s JOIN products p ON p.s_id=s.s_id\n  WHERE p.p_name LIKE CONCAT('%',p_keyword,'%');\n  IF v_count>0 THEN\n    SELECT CONCAT('共找到',v_count,'个供应商提供',p_keyword,'商品!') AS message;\n  ELSE\n    SELECT CONCAT('没有供应商提供',p_keyword,'商品') AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL find_suppliers('手机');",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",
@@ -435,7 +435,7 @@
         "title": "电商 2 · 购物车按加入时间降序",
         "prompt": "创建存储过程，查询某位用户的购物车商品信息，并按商品添加时间降序。",
         "answer": "输入用户编号，关联购物车与商品。按 added_at DESC 排序；同一时间用 p_id 提供稳定次序。",
-        "code": "DELIMITER //\nCREATE PROCEDURE show_cart(IN p_user_id INT)\nBEGIN\n  SELECT p.p_id,p.p_name,p.price,c.quantity,c.added_at\n  FROM cart c JOIN products p ON p.p_id=c.p_id\n  WHERE c.u_id=p_user_id\n  ORDER BY c.added_at DESC,c.p_id ASC;\nEND //\nDELIMITER ;\nCALL show_cart(1);",
+        "code": "DROP PROCEDURE IF EXISTS show_cart;\nDELIMITER //\nCREATE PROCEDURE show_cart(IN p_user_id INT)\nBEGIN\n  SELECT p.p_id,p.p_name,p.price,c.quantity,c.added_at\n  FROM cart c JOIN products p ON p.p_id=c.p_id\n  WHERE c.u_id=p_user_id\n  ORDER BY c.added_at DESC,c.p_id ASC;\nEND //\nDELIMITER ;\nCALL show_cart(1);",
         "checks": [
           "字段、连接与过滤条件符合题意",
           "注意空值、重复与并列结果",

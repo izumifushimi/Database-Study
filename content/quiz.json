@@ -379,41 +379,41 @@
   {
     "id": "q30",
     "module": "m6",
-    "question": "PL/SQL 中对变量赋值的符号是？",
+    "question": "在 MySQL 存储过程中，把局部变量 v_i 设为 1 的正确语句是？",
     "options": [
-      "=",
-      "==",
-      ":=",
-      "=>"
+      "v_i = 1;",
+      "v_i := 1;",
+      "SET v_i = 1;",
+      "v_i => 1;"
     ],
     "answer": 2,
-    "explanation": ":= 用于赋值，= 用于比较，=> 可用于命名参数传递。"
+    "explanation": "MySQL 局部变量使用 SET 赋值，也可以通过 SELECT ... INTO 接收查询结果。"
   },
   {
     "id": "q31",
     "module": "m6",
-    "question": "普通 SELECT INTO 返回零行时会？",
+    "question": "MySQL 的 SELECT ... INTO 查询返回零行时，默认行为是？",
     "options": [
       "变量自动为零",
-      "触发 NO_DATA_FOUND",
-      "触发 TOO_MANY_ROWS",
-      "自动继续且没有异常"
+      "产生 1329 条件，变量值保持原样",
+      "产生 1172 多行错误",
+      "自动插入一行"
     ],
     "answer": 1,
-    "explanation": "没有 BULK COLLECT 的 SELECT INTO 要求恰好一行。"
+    "explanation": "零行产生 No data 条件，可用 NOT FOUND HANDLER 处理；变量不会自动清零。"
   },
   {
     "id": "q32",
     "module": "m6",
     "question": "SELECT COUNT(*) INTO v_n FROM SC WHERE 1=0 会？",
     "options": [
-      "触发 NO_DATA_FOUND",
+      "产生 NOT FOUND 条件",
       "v_n 为 NULL",
       "v_n 为 0",
-      "触发 TOO_MANY_ROWS"
+      "产生 1172 错误"
     ],
     "answer": 2,
-    "explanation": "不带 GROUP BY 的聚合查询返回一行，即使没有匹配记录，COUNT 也为 0。"
+    "explanation": "不带 GROUP BY 的聚合查询仍有一行结果，COUNT 返回 0。"
   },
   {
     "id": "q33",
@@ -431,80 +431,80 @@
   {
     "id": "q34",
     "module": "m6",
-    "question": "游标 FOR 循环会自动完成？",
+    "question": "MySQL 游标 FETCH 到末尾时，常用什么方式结束循环？",
     "options": [
-      "只 OPEN",
-      "只 CLOSE",
-      "OPEN、FETCH 和 CLOSE",
-      "COMMIT"
+      "游标自动关闭",
+      "CONTINUE HANDLER FOR NOT FOUND 设置 done，再 LEAVE",
+      "自动执行 COMMIT",
+      "直接继续使用上次变量值"
     ],
-    "answer": 2,
-    "explanation": "游标 FOR 循环自动管理游标生命周期，但不会替你提交事务。"
+    "answer": 1,
+    "explanation": "先声明 NOT FOUND 处理器，FETCH 后检查 done，退出循环后显式 CLOSE。"
   },
   {
     "id": "q35",
     "module": "m6",
-    "question": "Student.sname%TYPE 用于？",
+    "question": "MySQL 在存储过程中声明一个成绩局部变量，正确的是？",
     "options": [
-      "取得姓名值",
-      "沿用 sname 的数据类型",
-      "建立外键",
-      "遍历学生"
+      "DECLARE v_grade DECIMAL(5,2);",
+      "DECLARE v_grade LIKE SC.grade;",
+      "v_grade SC.grade;",
+      "VAR v_grade;"
     ],
-    "answer": 1,
-    "explanation": "%TYPE 是类型引用；%ROWTYPE 则可引用整行记录结构。"
+    "answer": 0,
+    "explanation": "DECLARE 位于 BEGIN ... END 的开头，类型显式写为 DECIMAL(5,2) 等。"
   },
   {
     "id": "q36",
     "module": "m6",
-    "question": "过程向调用者输出数量，适合使用哪种参数？",
+    "question": "MySQL 过程需要向调用者输出数量，适合使用哪种参数？",
     "options": [
       "IN",
       "OUT",
       "PRIVATE",
-      "RETURN NUMBER 参数"
+      "RETURNS 参数"
     ],
     "answer": 1,
-    "explanation": "OUT 参数把结果带回调用者；函数的返回类型是另一种机制。"
+    "explanation": "OUT 参数写在参数名之前，调用时可用 @变量接收。"
   },
   {
     "id": "q37",
     "module": "m6",
-    "question": "以下哪项是函数所必需的？",
+    "question": "MySQL 存储函数必须具备什么？",
     "options": [
       "手工 OPEN 游标",
-      "RETURN 类型和正常路径的返回值",
+      "RETURNS 类型和正常路径的 RETURN 值",
       "COMMIT",
       "OUT 参数"
     ],
     "answer": 1,
-    "explanation": "函数通过 RETURN 返回值；它不一定需要游标或 OUT 参数。"
+    "explanation": "函数定义使用 RETURNS 指定返回类型，函数体用 RETURN 表达式返回值。"
   },
   {
     "id": "q38",
     "module": "m6",
-    "question": "Oracle 行级 UPDATE 触发器中，修改前的成绩写为？",
+    "question": "MySQL 行级 UPDATE 触发器中，修改前的成绩写为？",
     "options": [
       "NEW.grade",
-      ":NEW.grade",
-      ":OLD.grade",
+      "OLD.grade",
+      "BEFORE.grade",
       "OLD(grade)"
     ],
-    "answer": 2,
-    "explanation": "行级触发器体使用 :OLD 引用修改前的值，:NEW 引用修改后的值。"
+    "answer": 1,
+    "explanation": "OLD.grade 表示修改前的值，NEW.grade 表示修改后的值。"
   },
   {
     "id": "q39",
     "module": "m6",
-    "question": "Oracle 普通行级触发器读取正在修改的同一张表，可能导致？",
+    "question": "MySQL 触发器中的哪种操作受到禁止？",
     "options": [
-      "自动提交",
-      "变异表错误 ORA-04091",
-      "自动去重",
-      "自动建立索引"
+      "向独立审计表插入记录",
+      "修改触发语句已经使用的原表",
+      "比较 OLD 与 NEW",
+      "用 NOW() 记录时间"
     ],
     "answer": 1,
-    "explanation": "跨行汇总应考虑语句阶段或复合触发器，不能直接在普通行触发器中重新查询本表。"
+    "explanation": "触发器不能再次修改触发语句已使用的表，也不能执行 COMMIT 或 ROLLBACK。"
   },
   {
     "id": "q40",

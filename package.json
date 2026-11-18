@@ -1,6 +1,15 @@
 {
-  "name": "database-study", "version": "1.0.0", "private": true,
+  "name": "database-study",
+  "version": "1.0.0",
+  "private": true,
   "description": "数据库原理与应用学习网站：课程、综合题、SQL 实验与复习",
-  "scripts": {"build": "node scripts/build.mjs", "dev": "python3 -m http.server 4173 --directory dist", "test": "node scripts/test.mjs"},
-  "dependencies": {"sql.js": "1.13.0"}
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "python3 -m http.server 4173 --directory dist",
+    "test": "node scripts/test.mjs",
+    "test:mysql": "python3 scripts/test-mysql.py"
+  },
+  "dependencies": {
+    "sql.js": "1.13.0"
+  }
 }

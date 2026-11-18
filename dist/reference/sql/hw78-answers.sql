@@ -1,8 +1,8 @@
--- 上机 7–8 · 存储过程与函数：MySQL 8.0.16+
--- 按题块执行；先载入对应数据集，不同数据集使用各自数据库。
+-- 上机 7–8 · 存储过程与函数；MySQL 8.0.16+；按题块在对应数据集中执行。
 
 -- 1. 基建 1 · 按项目名称统计材料种数
 -- 数据集：construction
+DROP PROCEDURE IF EXISTS project_material_count;
 DELIMITER //
 CREATE PROCEDURE project_material_count(IN p_project_name VARCHAR(60))
 BEGIN
@@ -21,6 +21,7 @@ CALL project_material_count('南京甲');
 
 -- 2. 基建 2 · 返回项目原材料信息
 -- 数据集：construction
+DROP FUNCTION IF EXISTS project_material_info;
 DELIMITER //
 CREATE FUNCTION project_material_info(p_project_name VARCHAR(60),p_material_name VARCHAR(60))
 RETURNS JSON READS SQL DATA
@@ -40,6 +41,7 @@ SELECT project_material_info('南京甲','原材料A');
 
 -- 3. 电商 1 · 商品名称模糊查询供应商
 -- 数据集：ecommerce
+DROP PROCEDURE IF EXISTS find_suppliers;
 DELIMITER //
 CREATE PROCEDURE find_suppliers(IN p_keyword VARCHAR(60))
 BEGIN
@@ -58,6 +60,7 @@ CALL find_suppliers('手机');
 
 -- 4. 电商 2 · 购物车按加入时间降序
 -- 数据集：ecommerce
+DROP PROCEDURE IF EXISTS show_cart;
 DELIMITER //
 CREATE PROCEDURE show_cart(IN p_user_id INT)
 BEGIN

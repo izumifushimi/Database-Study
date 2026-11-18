@@ -56,7 +56,7 @@
       },
       {
         "title": "3. 写建表语句",
-        "prompt": "使用 Oracle 语法建立四张表，设置主键、外键、非空和成绩范围。",
+        "prompt": "使用 MySQL 语法建立四张表，设置主键、外键、非空和成绩范围。",
         "answer": "先建被引用的 Dept、Course，再建 Student 和 SC。NULL 表示未出分，CHECK 并不拒绝 NULL。",
         "checks": [
           "父表先建",
@@ -64,7 +64,7 @@
           "所有引用目标正确",
           "成绩 CHECK 与 NULL 语义正确"
         ],
-        "code": "CREATE TABLE Dept (\n  dept VARCHAR2(30) PRIMARY KEY,\n  head VARCHAR2(40) NOT NULL\n);\nCREATE TABLE Student (\n  sno VARCHAR2(8) PRIMARY KEY,\n  sname VARCHAR2(40) NOT NULL,\n  dept VARCHAR2(30) NOT NULL REFERENCES Dept(dept),\n  age NUMBER(3) CHECK(age BETWEEN 0 AND 120)\n);\nCREATE TABLE Course (\n  cno VARCHAR2(4) PRIMARY KEY,\n  cname VARCHAR2(60) NOT NULL,\n  credit NUMBER(3,1) NOT NULL CHECK(credit > 0)\n);\nCREATE TABLE SC (\n  sno VARCHAR2(8) REFERENCES Student(sno),\n  cno VARCHAR2(4) REFERENCES Course(cno),\n  grade NUMBER(5,2) CHECK(grade BETWEEN 0 AND 100),\n  PRIMARY KEY(sno,cno)\n);"
+        "code": "CREATE TABLE Dept (\n  dept VARCHAR(30) PRIMARY KEY, head VARCHAR(40) NOT NULL\n);\nCREATE TABLE Student (\n  sno VARCHAR(8) PRIMARY KEY, sname VARCHAR(40) NOT NULL,\n  dept VARCHAR(30) NOT NULL, age INT CHECK(age BETWEEN 0 AND 120),\n  FOREIGN KEY(dept) REFERENCES Dept(dept)\n);\nCREATE TABLE Course (\n  cno VARCHAR(4) PRIMARY KEY, cname VARCHAR(60) NOT NULL,\n  credit DECIMAL(3,1) NOT NULL CHECK(credit > 0)\n);\nCREATE TABLE SC (\n  sno VARCHAR(8), cno VARCHAR(4), grade DECIMAL(5,2) CHECK(grade BETWEEN 0 AND 100),\n  PRIMARY KEY(sno,cno),\n  FOREIGN KEY(sno) REFERENCES Student(sno),\n  FOREIGN KEY(cno) REFERENCES Course(cno)\n);"
       },
       {
         "title": "4. 复杂查询与视图",
@@ -79,28 +79,28 @@
         "code": "SELECT s.sno, s.sname,\n       SUM(CASE WHEN sc.grade >= 60 THEN c.credit ELSE 0 END) AS earned_credit\nFROM Student s\nLEFT JOIN SC sc ON sc.sno = s.sno\nLEFT JOIN Course c ON c.cno = sc.cno\nGROUP BY s.sno, s.sname;\n\nCREATE VIEW CourseStats AS\nSELECT c.cno, c.cname, COUNT(sc.grade) AS graded_count,\n       AVG(sc.grade) AS avg_grade\nFROM Course c LEFT JOIN SC sc ON sc.cno = c.cno\nGROUP BY c.cno, c.cname;"
       },
       {
-        "title": "5. 带参数游标的存储过程",
+        "title": "5. 带输入参数与游标的存储过程",
         "prompt": "创建过程 print_scores，输入学号，逐行输出该学生课程号与成绩。",
-        "answer": "使用参数游标。游标 FOR 循环自动管理 OPEN、FETCH、CLOSE。未出分用文字表达。无选课时循环执行零次。",
+        "answer": "过程输入学号，游标查询引用该参数；使用 NOT FOUND 处理器检查 FETCH 是否到末尾，再显式关闭游标。未出分用 COALESCE 输出文字，无选课时不处理任何旧值。",
         "checks": [
-          "参数类型引用正确",
-          "游标与输入学号关联",
-          "逐行输出",
-          "不用重复手动打开游标"
+          "过程参数类型正确",
+          "游标查询按输入学号筛选",
+          "FETCH 后先检查 done",
+          "结束后关闭游标"
         ],
-        "code": "CREATE OR REPLACE PROCEDURE print_scores (\n  p_sno IN Student.sno%TYPE\n) AS\n  CURSOR c_scores(v_sno Student.sno%TYPE) IS\n    SELECT cno, grade FROM SC WHERE sno = v_sno ORDER BY cno;\nBEGIN\n  FOR r IN c_scores(p_sno) LOOP\n    DBMS_OUTPUT.PUT_LINE(r.cno || ':' ||\n      NVL(TO_CHAR(r.grade), '未出分'));\n  END LOOP;\nEND;\n/"
+        "code": "DROP PROCEDURE IF EXISTS print_scores;\nDELIMITER //\nCREATE PROCEDURE print_scores(IN p_sno VARCHAR(8))\nBEGIN\nDECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_cno VARCHAR(4);\n  DECLARE v_grade DECIMAL(5,2);\n  DECLARE c_scores CURSOR FOR SELECT cno,grade FROM SC WHERE sno=p_sno ORDER BY cno;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done=TRUE;\n  OPEN c_scores;\n  read_loop: LOOP\n    FETCH c_scores INTO v_cno,v_grade;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT v_cno AS cno,COALESCE(CAST(v_grade AS CHAR),'未出分') AS grade;\n  END LOOP read_loop;\n  CLOSE c_scores;\nEND //\nDELIMITER ;\nCALL print_scores('S01');"
       },
       {
         "title": "6. 函数、选课过程与边界",
         "prompt": "创建返回课程平均分的函数，以及为学生选课的过程；处理重复选课，说明事务由谁提交。",
-        "answer": "AVG 忽略未出分成绩。重复选课由复合主键保障，并捕获 DUP_VAL_ON_INDEX。学生或课程不存在会因外键失败，由调用方处理；过程内部不自行 COMMIT。",
+        "answer": "AVG 忽略 NULL 成绩。复合主键保证重复选课不能插入，包括并发场景；1062 错误处理器用 SIGNAL 返回业务消息。学生或课程不存在由外键约束拒绝；过程内部不 COMMIT。",
         "checks": [
           "函数声明 RETURN 并返回结果",
           "空成绩不进平均分分母",
           "主键抵御并发重复插入",
           "过程不擅自提交调用者事务"
         ],
-        "code": "CREATE OR REPLACE FUNCTION course_average (\n  p_cno IN Course.cno%TYPE\n) RETURN NUMBER AS\n  v_avg NUMBER;\nBEGIN\n  SELECT AVG(grade) INTO v_avg FROM SC WHERE cno = p_cno;\n  RETURN v_avg;\nEND;\n/\nCREATE OR REPLACE PROCEDURE enroll (\n  p_sno IN Student.sno%TYPE,\n  p_cno IN Course.cno%TYPE\n) AS\nBEGIN\n  INSERT INTO SC(sno,cno,grade) VALUES(p_sno,p_cno,NULL);\nEXCEPTION\n  WHEN DUP_VAL_ON_INDEX THEN\n    RAISE_APPLICATION_ERROR(-20002,'该学生已选此课程');\nEND;\n/"
+        "code": "DROP FUNCTION IF EXISTS course_average;\nDELIMITER //\nCREATE FUNCTION course_average(p_cno VARCHAR(4))\nRETURNS DECIMAL(6,2) READS SQL DATA\nBEGIN\nDECLARE v_avg DECIMAL(6,2);\n  SELECT AVG(grade) INTO v_avg FROM SC WHERE cno = p_cno;\n  RETURN v_avg;\nEND //\nDELIMITER ;\nDROP PROCEDURE IF EXISTS enroll;\nDELIMITER //\nCREATE PROCEDURE enroll(IN p_sno VARCHAR(8), IN p_cno VARCHAR(4))\nBEGIN\nDECLARE EXIT HANDLER FOR 1062\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='该学生已选此课程';\n  INSERT INTO SC(sno,cno,grade) VALUES(p_sno,p_cno,NULL);\nEND //\nDELIMITER ;"
       }
     ]
   },
@@ -150,14 +150,14 @@
       {
         "title": "2. 查询未归还与逾期",
         "prompt": "查询截至指定日期仍未归还且已过应还日的借阅，输出读者名、书名和应还日。",
-        "answer": "同时要求 returned_at IS NULL 与 due_at < 截止日期，不能用 returned_at = NULL。日期用明确的 Oracle DATE 字面量。",
+        "answer": "同时检查 returned_at IS NULL 和 due_at 早于截止时间；日期采用 MySQL 的 ISO 字符串格式，字段类型使用 DATE 或 DATETIME。",
         "checks": [
           "四表连接完整",
           "未归还用 IS NULL",
           "正确比较应还日期",
           "日期方言一致"
         ],
-        "code": "SELECT r.name, b.title, l.due_at\nFROM Loan l\nJOIN Reader r ON r.reader_id = l.reader_id\nJOIN Copy cp ON cp.copy_id = l.copy_id\nJOIN Book b ON b.isbn = cp.isbn\nWHERE l.returned_at IS NULL\n  AND l.due_at < DATE '2026-11-16';"
+        "code": "SELECT r.name, b.title, l.due_at\nFROM Loan l\nJOIN Reader r ON r.reader_id = l.reader_id\nJOIN Copy cp ON cp.copy_id = l.copy_id\nJOIN Book b ON b.isbn = cp.isbn\nWHERE l.returned_at IS NULL\n  AND l.due_at < '2026-11-16';"
       },
       {
         "title": "3. 统计所有读者的在借数量",
@@ -174,14 +174,14 @@
       {
         "title": "4. 归还过程与异常",
         "prompt": "创建 return_copy(p_loan_id)，只归还尚未归还的记录；若没有更新任何行则抛出业务异常。",
-        "answer": "用单条有条件 UPDATE 修改，然后通过 SQL%ROWCOUNT 判断。避免先查询再修改造成不必要的竞争窗口。过程不提交事务。",
+        "answer": "有条件 UPDATE 只修改尚未归还的记录；立即检查 ROW_COUNT()。若没有改变任何行，使用 SIGNAL 抛出业务错误；过程不自行提交。",
         "checks": [
-          "只更新未归还记录",
-          "使用 SYSDATE",
-          "检查 SQL%ROWCOUNT",
-          "零行抛业务异常"
+          "仅更新未归还记录",
+          "NOW() 记录归还时间",
+          "立即检查 ROW_COUNT()",
+          "零行使用 SIGNAL 报错"
         ],
-        "code": "CREATE OR REPLACE PROCEDURE return_copy (\n  p_loan_id IN Loan.loan_id%TYPE\n) AS\nBEGIN\n  UPDATE Loan SET returned_at = SYSDATE\n  WHERE loan_id = p_loan_id AND returned_at IS NULL;\n  IF SQL%ROWCOUNT = 0 THEN\n    RAISE_APPLICATION_ERROR(-20003,'借阅记录不存在或已经归还');\n  END IF;\nEND;\n/"
+        "code": "DROP PROCEDURE IF EXISTS return_copy;\nDELIMITER //\nCREATE PROCEDURE return_copy(IN p_loan_id INT)\nBEGIN\nUPDATE Loan SET returned_at=NOW()\n  WHERE loan_id=p_loan_id AND returned_at IS NULL;\n  IF ROW_COUNT()=0 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='借阅记录不存在或已经归还';\n  END IF;\nEND //\nDELIMITER ;"
       }
     ]
   },
@@ -226,14 +226,14 @@
       {
         "title": "2. 加薪过程",
         "prompt": "输入部门号和加薪比例，例如 0.15 代表 15%；用集合式 SQL 完成更新并输出影响行数。",
-        "answer": "无需为了统一加薪逐行使用游标。比例需校验；若业务不允许负比例，则明确拒绝。输出的行数来自 SQL%ROWCOUNT。",
+        "answer": "用集合式 UPDATE 给指定部门加薪；先验证比例非空非负。更新后立即保存 ROW_COUNT()，再输出影响行数；不在过程中提交事务。",
         "checks": [
           "比例非空非负",
           "关联输入部门",
           "ROUND 到两位小数",
           "输出影响行数"
         ],
-        "code": "CREATE OR REPLACE PROCEDURE raise_salary (\n  p_dno IN Department.dno%TYPE,\n  p_rate IN NUMBER\n) AS\nBEGIN\n  IF p_rate IS NULL OR p_rate < 0 THEN\n    RAISE_APPLICATION_ERROR(-20004,'加薪比例必须非空且非负');\n  END IF;\n  UPDATE Employee SET salary = ROUND(salary * (1+p_rate), 2)\n  WHERE dno = p_dno;\n  DBMS_OUTPUT.PUT_LINE('更新行数：' || SQL%ROWCOUNT);\nEND;\n/"
+        "code": "DROP PROCEDURE IF EXISTS raise_salary;\nDELIMITER //\nCREATE PROCEDURE raise_salary(IN p_dno VARCHAR(8), IN p_rate DECIMAL(6,4))\nBEGIN\nDECLARE v_changed INT;\n  IF p_rate IS NULL OR p_rate<0 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='加薪比例必须非空且非负';\n  END IF;\n  UPDATE Employee SET salary=ROUND(salary*(1+p_rate),2) WHERE dno=p_dno;\n  SET v_changed=ROW_COUNT();\n  SELECT v_changed AS changed_rows;\nEND //\nDELIMITER ;"
       },
       {
         "title": "3. 返回平均薪资",
@@ -242,22 +242,22 @@
         "checks": [
           "输入参数类型正确",
           "AVG 的范围正确",
-          "RETURN 类型及结果",
+          "RETURNS 类型及结果",
           "不错误捕获聚合零行"
         ],
-        "code": "CREATE OR REPLACE FUNCTION avg_salary (\n  p_dno IN Department.dno%TYPE\n) RETURN NUMBER AS\n  v_avg NUMBER;\nBEGIN\n  SELECT AVG(salary) INTO v_avg FROM Employee WHERE dno = p_dno;\n  RETURN v_avg;\nEND;\n/"
+        "code": "DROP FUNCTION IF EXISTS avg_salary;\nDELIMITER //\nCREATE FUNCTION avg_salary(p_dno VARCHAR(8))\nRETURNS DECIMAL(12,2) READS SQL DATA\nBEGIN\nDECLARE v_avg DECIMAL(12,2);\n  SELECT AVG(salary) INTO v_avg FROM Employee WHERE dno=p_dno;\n  RETURN v_avg;\nEND //\nDELIMITER ;"
       },
       {
         "title": "4. 薪资审计触发器",
         "prompt": "建立审计表，并在工资真实发生变化时写入旧值、新值和时间。",
-        "answer": "工资已约定非空，可以直接比较 :OLD.salary 与 :NEW.salary。触发器只插入审计表，不读取正在修改的 Employee 表。原事务回滚时，审计行也回滚。",
+        "answer": "使用 AFTER UPDATE ON Employee FOR EACH ROW，并在程序体内比较 OLD.salary 与 NEW.salary。NULL 安全比较跳过没有真实变化的更新。审计与工资更新属于同一 InnoDB 事务。",
         "checks": [
-          "AFTER UPDATE OF salary",
+          "AFTER UPDATE ON Employee",
           "FOR EACH ROW",
-          "新旧值与时间正确",
-          "只记录真实变化"
+          "OLD/NEW 与 NOW() 使用正确",
+          "只记录真实变化，原事务回滚时审计也回滚"
         ],
-        "code": "CREATE TABLE SalaryAudit (\n  eno VARCHAR2(8), old_salary NUMBER(12,2),\n  new_salary NUMBER(12,2), changed_at DATE\n);\nCREATE OR REPLACE TRIGGER trg_salary_audit\nAFTER UPDATE OF salary ON Employee\nFOR EACH ROW\nBEGIN\n  IF :OLD.salary <> :NEW.salary THEN\n    INSERT INTO SalaryAudit VALUES(\n      :NEW.eno,:OLD.salary,:NEW.salary,SYSDATE\n    );\n  END IF;\nEND;\n/"
+        "code": "CREATE TABLE SalaryAudit (\n  eno VARCHAR(8), old_salary DECIMAL(12,2),\n  new_salary DECIMAL(12,2), changed_at DATETIME\n);\nDELIMITER //\nCREATE TRIGGER trg_salary_audit\nAFTER UPDATE ON Employee\nFOR EACH ROW\nBEGIN\n  IF NOT (OLD.salary <=> NEW.salary) THEN\n    INSERT INTO SalaryAudit(eno,old_salary,new_salary,changed_at)\n    VALUES(NEW.eno,OLD.salary,NEW.salary,NOW());\n  END IF;\nEND //\nDELIMITER ;"
       }
     ]
   }

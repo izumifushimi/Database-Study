@@ -4,9 +4,9 @@
 
 [打开公开学习网站](https://izumifushimi.github.io/Database-Study/) · [GitHub 公开源码仓库](https://github.com/izumifushimi/Database-Study)
 
-- 6 个课程模块、31 节讲解，包含关系代数、SQL、规范化、Oracle PL/SQL 与数据库设计。
+- 6 个课程模块、31 节讲解，包含关系代数、SQL、规范化、MySQL 存储程序 与数据库设计。
 - 4 组上机练习、32 个任务，提供 MySQL 8.0.16+ 参考解法、建表数据与自评清单。
-- 10 道真正执行 SQL 的交互实验，使用本地打包的 sql.js / SQLite。
+- 10 道 MySQL 通用 SELECT / WITH 查询练习，浏览器以 sql.js / SQLite 做兼容演示；完整 MySQL 实验脚本可下载。
 - 3 个综合案例、14 个分步任务，以及 42 道带解析的概念自测。
 - 全文搜索、课程进度、错题记录、自动保存草稿、JSON 备份导入导出；适配手机。
 
@@ -55,10 +55,28 @@ dist/                  构建结果，可直接托管
 
 学习进度只保存在当前浏览器 localStorage；不同域名和设备不自动同步。复习页可导出、导入 JSON 备份，导入以合并方式保留已有记录。
 
-实验室使用 SQLite，支持通用查询、DDL 和 DML；不能执行 Oracle PL/SQL 或 MySQL 存储程序。“检验答案”在独立初始数据中执行用户查询和参考查询，比较列顺序、值、行数和重复；排序题额外比较行顺序。样例结果一致不能证明任意数据上的语义等价。为避免耗时查询阻塞界面，查询 Worker 超时后会重置。
+所有教学与下载代码使用 MySQL 8.0.16+。浏览器演示使用 SQLite，仅支持通用 SELECT / WITH 查询，不运行 MySQL 服务器，也不执行 DDL、数据修改和存储程序。“检验答案”在独立初始数据中执行用户查询和参考查询，比较列顺序、值、行数和重复；排序题额外比较行顺序。样例结果一致不能证明任意数据上的语义等价。为避免耗时查询阻塞界面，查询 Worker 超时后会重置。
 
-综合题和上机开放题提供参考解法与自评清单，不进行自动语义评分。Oracle / MySQL 编程题参考答案需要在对应数据库中运行；本项目的 SQLite 检验不等同于这些数据库上的编译验证。
+综合题和上机开放题提供参考解法与自评清单，不对用户开放答案自动评分。MySQL 编程题提供完整的建表、数据与存储程序脚本；使用 `npm run test:mysql` 对原生 MySQL 8.x 编译并验证运行行为，CI 使用 MySQL 8.4。SQLite 检验仅覆盖浏览器兼容查询。
 
 ## 技术与材料
 
 前端为原生 HTML/CSS/JavaScript。SQL 引擎为 [sql.js](https://sql.js.org/) 1.13.0，MIT 许可证随构建一起保留。数据库课件与题目来自用户提供的课程材料；教学内容重新整理，保留材料原有归属。详见 [覆盖说明](docs/coverage.md) 与 [方言速查](docs/dialects.md)。
+
+## 原生 MySQL 检查与下载脚本
+
+提供 MySQL 8.x 服务和 mysql 客户端后，执行：
+
+```sh
+MYSQL_TEST_HOST=127.0.0.1 MYSQL_TEST_PORT=3306 MYSQL_TEST_USER=root npm run test:mysql
+# 使用本机 socket 时：
+MYSQL_TEST_SOCKET=/你的/mysql.sock npm run test:mysql
+```
+
+需要密码时设置 `MYSQL_TEST_PASSWORD` 环境变量。测试创建带唯一前缀的临时样例数据库并在结束时清理，需要测试账号具备相应建库权限。
+
+- `docs/mysql-course.sql`：选课案例，含建表、数据、视图、游标、过程、函数和成绩审计。
+- `docs/mysql-programming.sql`：第 6 章完整存储程序示例，先运行选课案例建表。
+- `docs/mysql-lab.sql`：在线查询练习对应的完整 MySQL 数据与答案。
+- `docs/sql/library-case.sql`、`docs/sql/employee-case.sql`：图书与薪资综合案例。
+- `docs/sql/*-answers.sql`：上机 4–8 参考答案，按题块和对应数据集执行。

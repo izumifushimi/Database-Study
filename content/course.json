@@ -31,8 +31,8 @@
     {
       "id": "m6",
       "number": "06",
-      "title": "PL/SQL 编程基础",
-      "subtitle": "块 · 游标 · 过程 · 函数",
+      "title": "MySQL 存储程序",
+      "subtitle": "变量 · 游标 · 过程 · 函数 · 触发器",
       "color": "pink"
     },
     {
@@ -72,7 +72,7 @@
             [
               "DBMS",
               "定义、查询、更新并管理数据库的软件",
-              "Oracle、MySQL 等"
+              "MySQL 等关系数据库管理软件"
             ],
             [
               "DBS",
@@ -334,8 +334,8 @@
         {
           "type": "code",
           "title": "选课联系的约束",
-          "code": "CREATE TABLE SC (\n  sno VARCHAR2(8),\n  cno VARCHAR2(4),\n  grade NUMBER(5,2),\n  CONSTRAINT pk_sc PRIMARY KEY (sno, cno),\n  CONSTRAINT fk_sc_s FOREIGN KEY (sno) REFERENCES Student(sno),\n  CONSTRAINT fk_sc_c FOREIGN KEY (cno) REFERENCES Course(cno),\n  CONSTRAINT ck_grade CHECK (grade BETWEEN 0 AND 100)\n);",
-          "dialect": "Oracle"
+          "code": "CREATE TABLE SC (\n  sno VARCHAR(8),\n  cno VARCHAR(4),\n  grade DECIMAL(5,2),\n  CONSTRAINT pk_sc PRIMARY KEY (sno, cno),\n  CONSTRAINT fk_sc_s FOREIGN KEY (sno) REFERENCES Student(sno),\n  CONSTRAINT fk_sc_c FOREIGN KEY (cno) REFERENCES Course(cno),\n  CONSTRAINT ck_grade CHECK (grade BETWEEN 0 AND 100)\n);",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -404,11 +404,11 @@
           "type": "code",
           "title": "SQL 中的集合写法",
           "code": "SELECT sno FROM SC WHERE cno = 'C01'\nUNION\nSELECT sno FROM SC WHERE cno = 'C02';",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "tip",
-          "text": "UNION 去重，UNION ALL 保留重复。集合差：传统 Oracle 课程常用 MINUS，SQLite 使用 EXCEPT。"
+          "text": "UNION 去重，UNION ALL 保留重复。为兼容 MySQL 8.0.16+，集合差可以用 NOT EXISTS；不要依赖较新版本才提供的集合差语法。"
         }
       ],
       "tags": [
@@ -462,7 +462,7 @@
           "type": "code",
           "title": "查学生姓名和已选课程号",
           "code": "SELECT s.sname, sc.cno\nFROM Student s\nJOIN SC sc ON sc.sno = s.sno;",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "tip",
@@ -499,7 +499,7 @@
           "type": "code",
           "title": "双重 NOT EXISTS：没有一门课没选",
           "code": "SELECT s.sno, s.sname\nFROM Student s\nWHERE NOT EXISTS (\n  SELECT 1 FROM Course c\n  WHERE NOT EXISTS (\n    SELECT 1 FROM SC sc\n    WHERE sc.sno = s.sno AND sc.cno = c.cno\n  )\n);",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -517,7 +517,7 @@
       "id": "ddl-types",
       "module": "m4",
       "title": "SQL 分类与数据类型",
-      "summary": "写出清晰的建表语句，并标明数据库方言。",
+      "summary": "使用 MySQL 的字符、数值与日期类型写出建表语句。",
       "blocks": [
         {
           "type": "table",
@@ -557,7 +557,7 @@
         },
         {
           "type": "table",
-          "title": "Oracle 课程常用类型",
+          "title": "MySQL 常用类型",
           "heads": [
             "类型",
             "含义",
@@ -570,31 +570,36 @@
               "课程编号"
             ],
             [
-              "VARCHAR2(n)",
+              "VARCHAR(n)",
               "可变长度字符",
               "姓名"
             ],
             [
-              "NUMBER(p,s)",
-              "总精度 p，小数位 s",
-              "NUMBER(6,2) 可有 4 位整数"
+              "INT",
+              "整数",
+              "年龄、数量"
             ],
             [
-              "DATE",
-              "日期与时间",
-              "入学时间"
+              "DECIMAL(p,s)",
+              "总位数 p，小数位数 s",
+              "DECIMAL(6,2) 可有 4 位整数"
+            ],
+            [
+              "DATE / DATETIME",
+              "仅日期 / 日期与时间",
+              "入学日期 / 操作时间"
             ]
           ]
         },
         {
           "type": "code",
           "title": "创建学生和课程表",
-          "code": "CREATE TABLE Student (\n  sno VARCHAR2(8) PRIMARY KEY,\n  sname VARCHAR2(40) NOT NULL,\n  dept VARCHAR2(30),\n  age NUMBER(3) CHECK (age BETWEEN 0 AND 120)\n);\nCREATE TABLE Course (\n  cno VARCHAR2(4) PRIMARY KEY,\n  cname VARCHAR2(60) NOT NULL,\n  credit NUMBER(3,1) CHECK (credit > 0)\n);",
-          "dialect": "Oracle"
+          "code": "CREATE TABLE Student (\n  sno VARCHAR(8) PRIMARY KEY,\n  sname VARCHAR(40) NOT NULL,\n  dept VARCHAR(30),\n  age INT CHECK (age BETWEEN 0 AND 120)\n);\nCREATE TABLE Course (\n  cno VARCHAR(4) PRIMARY KEY,\n  cname VARCHAR(60) NOT NULL,\n  credit DECIMAL(3,1) CHECK (credit > 0)\n);",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "tip",
-          "text": "MySQL 的 AUTO_INCREMENT、反引号、ALTER TABLE ... ADD INDEX 不能直接搬进 Oracle PL/SQL。浏览器实验区使用 SQLite，课程示例按标签区分。"
+          "text": "整数主键需要自动编号时可用 AUTO_INCREMENT。表和列名用反引号引用，字符串用单引号；CHECK 约束需要 MySQL 8.0.16 或更新版本。"
         }
       ],
       "tags": [
@@ -612,9 +617,9 @@
       "blocks": [
         {
           "type": "code",
-          "title": "Oracle：修改列与命名约束",
-          "code": "ALTER TABLE Student ADD entrance_date DATE;\nALTER TABLE Student MODIFY sname VARCHAR2(60);\nALTER TABLE Student ADD CONSTRAINT uq_student_name UNIQUE (sname);\nALTER TABLE Student DROP CONSTRAINT uq_student_name;\nALTER TABLE Student DROP COLUMN entrance_date;",
-          "dialect": "Oracle"
+          "title": "修改列与命名约束",
+          "code": "ALTER TABLE Student ADD COLUMN entrance_date DATE;\nALTER TABLE Student MODIFY COLUMN sname VARCHAR(60) NOT NULL;\nALTER TABLE Student ADD CONSTRAINT uq_student_name UNIQUE (sname);\nALTER TABLE Student DROP INDEX uq_student_name;\nALTER TABLE Student DROP COLUMN entrance_date;",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -624,8 +629,8 @@
         {
           "type": "code",
           "title": "创建和删除索引",
-          "code": "CREATE INDEX idx_sc_cno ON SC(cno);\nCREATE UNIQUE INDEX idx_course_name ON Course(cname);\nDROP INDEX idx_course_name;",
-          "dialect": "Oracle / SQLite"
+          "code": "CREATE INDEX idx_sc_cno ON SC(cno);\nCREATE UNIQUE INDEX idx_course_name ON Course(cname);\nDROP INDEX idx_course_name ON Course;",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -656,7 +661,7 @@
         },
         {
           "type": "tip",
-          "text": "Oracle 不会因为定义外键就自动为外键列创建索引。外键列是否建索引需按访问与并发需求判断。"
+          "text": "InnoDB 要求外键列有可用索引；若没有合适索引会自动创建。主键和唯一约束也由索引支持，但普通索引不保证唯一。"
         }
       ],
       "tags": [
@@ -676,7 +681,7 @@
           "type": "code",
           "title": "筛选、投影与排序",
           "code": "SELECT sno, sname, age\nFROM Student\nWHERE dept = '计算机' AND age < 21\nORDER BY age ASC, sno ASC;",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "table",
@@ -726,7 +731,7 @@
         },
         {
           "type": "tip",
-          "text": "LIKE 的标准通配符只有 % 与 _。不要用 LIKE '%[0-9]%' 判断含数字；Oracle 可用 REGEXP_LIKE(字段, '[0-9]')。"
+          "text": "LIKE 的通配符是 % 与 _。判断字符串含数字可写 REGEXP_LIKE(sname, '[0-9]') 或 sname REGEXP '[0-9]'。"
         }
       ],
       "tags": [
@@ -746,7 +751,7 @@
           "type": "code",
           "title": "按课程统计已出分成绩",
           "code": "SELECT cno, COUNT(*) AS selected_count,\n       COUNT(grade) AS graded_count,\n       ROUND(AVG(grade), 2) AS avg_grade\nFROM SC\nGROUP BY cno\nHAVING COUNT(grade) >= 2\nORDER BY avg_grade DESC;",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -762,7 +767,7 @@
           "type": "code",
           "title": "保留所有课程，即使没人选",
           "code": "SELECT c.cno, c.cname, COUNT(sc.sno) AS n\nFROM Course c LEFT JOIN SC sc ON sc.cno = c.cno\nGROUP BY c.cno, c.cname;",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "tip",
@@ -786,7 +791,7 @@
           "type": "code",
           "title": "学生、选课、课程三表连接",
           "code": "SELECT s.sno, s.sname, c.cname, sc.grade\nFROM Student s\nJOIN SC sc ON sc.sno = s.sno\nJOIN Course c ON c.cno = sc.cno;",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -797,7 +802,7 @@
           "type": "code",
           "title": "条件放在 ON 中保留未选课学生",
           "code": "SELECT s.sno, s.sname, sc.grade\nFROM Student s\nLEFT JOIN SC sc ON sc.sno = s.sno AND sc.cno = 'C01';",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -808,7 +813,7 @@
           "type": "code",
           "title": "自连接：课程与先修课程（需 pcno 字段）",
           "code": "SELECT c.cname, p.cname AS prerequisite\nFROM Course c LEFT JOIN Course p ON p.cno = c.pcno;",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "tip",
@@ -832,19 +837,19 @@
           "type": "code",
           "title": "保留所有并列最高分",
           "code": "SELECT sno, grade FROM SC\nWHERE cno = 'C01'\n  AND grade = (SELECT MAX(grade) FROM SC WHERE cno = 'C01');",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "code",
           "title": "相关子查询：高于本课程平均分",
           "code": "SELECT sc.sno, sc.cno, sc.grade\nFROM SC sc\nWHERE sc.grade > (\n  SELECT AVG(t.grade) FROM SC t WHERE t.cno = sc.cno\n);",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "code",
           "title": "没有选过任何课的学生",
           "code": "SELECT s.sno, s.sname FROM Student s\nWHERE NOT EXISTS (\n  SELECT 1 FROM SC sc WHERE sc.sno = s.sno\n);",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -873,7 +878,7 @@
           "type": "code",
           "title": "插入、修改与删除",
           "code": "INSERT INTO SC(sno, cno, grade) VALUES ('S05', 'C02', NULL);\nUPDATE SC SET grade = 85 WHERE sno = 'S05' AND cno = 'C02';\nDELETE FROM SC WHERE sno = 'S05' AND cno = 'C02';",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
@@ -883,13 +888,13 @@
         {
           "type": "code",
           "title": "事务控制的意图",
-          "code": "SAVEPOINT before_change;\nUPDATE SC SET grade = grade + 2 WHERE grade BETWEEN 0 AND 98;\nROLLBACK TO before_change;\nCOMMIT;",
-          "dialect": "Oracle"
+          "code": "START TRANSACTION;\nSAVEPOINT before_change;\nUPDATE SC SET grade = grade + 2 WHERE grade BETWEEN 0 AND 98;\nROLLBACK TO SAVEPOINT before_change;\nCOMMIT;",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
           "title": "事务由谁提交",
-          "text": "事务把一组操作作为整体处理。COMMIT 确认当前事务，ROLLBACK 撤销未提交的更改。可复用的过程通常把提交决定交给调用者，使多个过程能组成一个完整业务事务。Oracle 的 DDL 存在隐式提交行为，不要把它与普通 DML 回滚混为一谈。"
+          "text": "InnoDB 支持事务；默认自动提交开启，需用 START TRANSACTION 把一组修改组成事务。COMMIT 确认更改，ROLLBACK 撤销尚未提交的更改。可复用过程通常将提交决定留给调用者。CREATE、ALTER、DROP 等 DDL 通常会隐式提交，不应当作普通 DML 回滚。"
         }
       ],
       "tags": [
@@ -908,12 +913,12 @@
           "type": "code",
           "title": "创建视图",
           "code": "CREATE VIEW CS_Student AS\nSELECT sno, sname, dept FROM Student\nWHERE dept = '计算机'\nWITH CHECK OPTION;",
-          "dialect": "Oracle"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
           "title": "视图是什么",
-          "text": "普通视图是基于查询定义的虚拟表，通常保存查询定义而不独立保存查询结果。可用于简化复杂查询、提供局部数据接口和限制暴露字段。物化视图是另一个概念。"
+          "text": "视图保存查询定义，提供基表数据的虚拟接口，常用于简化查询和控制暴露的行列。MySQL 普通视图不独立保存一份查询结果。"
         },
         {
           "type": "text",
@@ -923,13 +928,13 @@
         {
           "type": "text",
           "title": "哪些视图难以更新",
-          "text": "含聚合、分组、DISTINCT 或复杂连接的视图通常有额外更新限制。Oracle 可用 WITH READ ONLY 声明只读。SQLite 普通视图默认不能直接更新，可通过 INSTEAD OF 触发器定义行为。"
+          "text": "含聚合、分组、DISTINCT、UNION 等操作的视图通常不可更新，连接视图也有更新限制。WITH CHECK OPTION 约束可更新视图的写入范围；它不会把不可更新视图变成可更新视图。"
         },
         {
           "type": "code",
           "title": "通过视图查询与删除视图",
           "code": "SELECT sno, sname FROM CS_Student;\nDROP VIEW CS_Student;",
-          "dialect": "通用 SQL"
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "tip",
@@ -1200,49 +1205,49 @@
     {
       "id": "plsql-block",
       "module": "m6",
-      "title": "PL/SQL 块、变量与赋值",
-      "summary": "把 SQL 组织成带变量和控制流程的程序。",
+      "title": "MySQL 程序块、变量与赋值",
+      "summary": "在存储过程的 BEGIN ... END 中声明变量、处理条件并输出结果。",
       "blocks": [
         {
           "type": "code",
-          "title": "匿名块的基本结构",
-          "code": "DECLARE\n  v_name Student.sname%TYPE;\nBEGIN\n  SELECT sname INTO v_name FROM Student WHERE sno = 'S01';\n  DBMS_OUTPUT.PUT_LINE(v_name);\nEXCEPTION\n  WHEN NO_DATA_FOUND THEN\n    DBMS_OUTPUT.PUT_LINE('学生不存在');\nEND;\n/",
-          "dialect": "Oracle"
+          "title": "存储过程中的程序块",
+          "code": "DROP PROCEDURE IF EXISTS show_student;\nDELIMITER //\nCREATE PROCEDURE show_student(IN p_sno VARCHAR(8))\nBEGIN\nDECLARE v_name VARCHAR(40);\n  DECLARE v_found BOOLEAN DEFAULT TRUE;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_found = FALSE;\n  SELECT sname INTO v_name FROM Student WHERE sno = p_sno;\n  IF v_found THEN\n    SELECT v_name AS student_name;\n  ELSE\n    SELECT '学生不存在' AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL show_student('S01');",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
-          "title": "三个部分",
-          "text": "DECLARE 声明部分可选；BEGIN ... END 执行部分必需；EXCEPTION 异常处理部分可选。匿名块内部变量使用 := 赋值；比较使用 =。每条语句与 END 后要有分号。SQL*Plus 等脚本工具中的 / 用于提交整个块，不属于 PL/SQL 语句本身。"
+          "title": "程序块与分隔符",
+          "text": "MySQL 将 DECLARE 写在 BEGIN ... END 的开头，先声明变量和条件，再声明游标，最后声明 HANDLER。局部变量用 SET v_name = ... 赋值，SELECT ... INTO 用于接收查询结果。DELIMITER 是 mysql 客户端切换语句结束符的命令，程序创建后用 CALL 调用。"
         },
         {
           "type": "table",
-          "title": "类型引用",
+          "title": "局部变量与会话变量",
           "heads": [
             "写法",
-            "含义"
+            "使用范围"
           ],
           "rows": [
             [
-              "v_grade SC.grade%TYPE",
-              "沿用某列的数据类型"
+              "DECLARE v_grade DECIMAL(5,2);",
+              "存储程序的局部变量，声明时明确类型"
             ],
             [
-              "v_student Student%ROWTYPE",
-              "接收学生表整行记录"
+              "SET v_grade = 85;",
+              "程序块内赋值"
             ],
             [
-              "v_row c_students%ROWTYPE",
-              "接收一个游标的结果行结构"
+              "SET @course_count = 0;",
+              "当前连接的会话变量，可在 CALL 中接收 OUT 参数"
             ]
           ]
         },
         {
           "type": "tip",
-          "text": "过程和函数在 IS / AS 后直接声明局部变量，不再额外加 DECLARE。浏览器 SQLite 实验区不能执行 PL/SQL。"
+          "text": "MySQL 不支持直接执行独立匿名 DECLARE 程序块。复制示例时连同 CREATE PROCEDURE、DELIMITER 与 CALL 一起执行；变量类型应与相关列匹配。"
         }
       ],
       "tags": [
-        "PL/SQL",
+        "MySQL 编程",
         "重点"
       ],
       "minutes": 10
@@ -1250,38 +1255,38 @@
     {
       "id": "select-into",
       "module": "m6",
-      "title": "SELECT INTO 与异常处理",
-      "summary": "单行接收、零行和多行都要有明确行为。",
+      "title": "SELECT INTO 与条件处理",
+      "summary": "接收单行结果，并区分零行、多行和业务错误。",
       "blocks": [
         {
           "type": "code",
-          "title": "接收单行查询结果",
-          "code": "DECLARE\n  v_name Student.sname%TYPE;\n  v_age Student.age%TYPE;\nBEGIN\n  SELECT sname, age INTO v_name, v_age\n  FROM Student WHERE sno = 'S01';\n  DBMS_OUTPUT.PUT_LINE(v_name || ':' || v_age);\nEXCEPTION\n  WHEN NO_DATA_FOUND THEN DBMS_OUTPUT.PUT_LINE('无此学生');\n  WHEN TOO_MANY_ROWS THEN DBMS_OUTPUT.PUT_LINE('查询条件不唯一');\nEND;\n/",
-          "dialect": "Oracle"
+          "title": "接收单行结果",
+          "code": "DROP PROCEDURE IF EXISTS find_student;\nDELIMITER //\nCREATE PROCEDURE find_student(IN p_sno VARCHAR(8))\nBEGIN\nDECLARE v_name VARCHAR(40);\n  DECLARE v_age INT;\n  DECLARE v_found BOOLEAN DEFAULT TRUE;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_found = FALSE;\n  DECLARE EXIT HANDLER FOR 1172\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '查询返回多行';\n  SELECT sname, age INTO v_name, v_age FROM Student WHERE sno = p_sno;\n  IF v_found THEN\n    SELECT v_name AS student_name, v_age AS age;\n  ELSE\n    SELECT '无此学生' AS message;\n  END IF;\nEND //\nDELIMITER ;\nCALL find_student('S01');",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
-          "title": "列与变量一一对应",
-          "text": "SELECT INTO 按位置把查询列赋给变量，列数、变量数和类型必须匹配。没有 BULK COLLECT 的 SELECT INTO 预期恰好一行：零行触发 NO_DATA_FOUND，多行触发 TOO_MANY_ROWS。多行逐个处理通常用游标。"
+          "title": "零行和多行行为",
+          "text": "SELECT ... INTO 按位置把列值写入变量，列数和变量数需一致。零行会产生 1329（No data）条件，变量值保持原样，可用 NOT FOUND 处理器捕获。多行会产生 1172 错误。不能用随意加 LIMIT 1 掩盖本应唯一的业务条件。"
         },
         {
           "type": "text",
-          "title": "聚合查询是一个特殊边界",
-          "text": "SELECT COUNT(*) INTO v_n FROM SC WHERE ... 即使没有匹配记录，也会返回一行 0；不带 GROUP BY 的 AVG 返回一行 NULL。加入 GROUP BY 后若没有组，仍可能零行。"
+          "title": "聚合查询的边界",
+          "text": "不带 GROUP BY 的 SELECT COUNT(*) INTO v_n 即使没有匹配行，也返回一行 0；AVG 返回一行 NULL。带 GROUP BY 且无任何分组时，仍可能返回零行。"
         },
         {
           "type": "code",
-          "title": "抛出业务异常",
-          "code": "IF v_grade < 0 OR v_grade > 100 THEN\n  RAISE_APPLICATION_ERROR(-20001, '成绩必须在 0 到 100 之间');\nEND IF;",
-          "dialect": "Oracle"
+          "title": "用 SIGNAL 抛出业务错误",
+          "code": "DROP PROCEDURE IF EXISTS validate_grade;\nDELIMITER //\nCREATE PROCEDURE validate_grade(IN p_grade DECIMAL(5,2))\nBEGIN\nIF p_grade IS NULL OR p_grade < 0 OR p_grade > 100 THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '成绩必须非空且在 0 到 100 之间';\n  END IF;\n  SELECT '成绩有效' AS message;\nEND //\nDELIMITER ;\nCALL validate_grade(85);",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "tip",
-          "text": "异常处理不要只写 WHEN OTHERS THEN NULL 吞掉所有错误。无法处理时可用 RAISE 继续抛出。"
+          "text": "CONTINUE HANDLER 处理后继续程序，EXIT HANDLER 退出它所在的 BEGIN ... END 块。需要把错误传给调用者时可用 RESIGNAL，避免静默吞掉错误。"
         }
       ],
       "tags": [
-        "PL/SQL",
+        "MySQL 编程",
         "异常",
         "重点"
       ],
@@ -1290,33 +1295,33 @@
     {
       "id": "control-flow",
       "module": "m6",
-      "title": "分支与三种循环",
-      "summary": "用 ELSIF、EXIT WHEN 与 FOR 正确控制执行。",
+      "title": "分支与 LOOP / WHILE / REPEAT",
+      "summary": "用 ELSEIF、LEAVE 与循环条件控制存储程序。",
       "blocks": [
         {
           "type": "code",
-          "title": "分数分段",
-          "code": "IF v_grade IS NULL THEN\n  DBMS_OUTPUT.PUT_LINE('未出分');\nELSIF v_grade >= 90 THEN\n  DBMS_OUTPUT.PUT_LINE('优秀');\nELSIF v_grade >= 60 THEN\n  DBMS_OUTPUT.PUT_LINE('及格');\nELSE\n  DBMS_OUTPUT.PUT_LINE('不及格');\nEND IF;",
-          "dialect": "Oracle"
+          "title": "成绩分段",
+          "code": "DROP PROCEDURE IF EXISTS classify_grade;\nDELIMITER //\nCREATE PROCEDURE classify_grade(IN p_grade DECIMAL(5,2))\nBEGIN\nDECLARE v_label VARCHAR(10);\n  IF p_grade IS NULL THEN SET v_label = '未出分';\n  ELSEIF p_grade >= 90 THEN SET v_label = '优秀';\n  ELSEIF p_grade >= 60 THEN SET v_label = '及格';\n  ELSE SET v_label = '不及格';\n  END IF;\n  SELECT v_label AS grade_label;\nEND //\nDELIMITER ;\nCALL classify_grade(92);",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "code",
-          "title": "三种循环骨架",
-          "code": "-- 基本循环：先执行，再由 EXIT WHEN 退出\nLOOP\n  v_i := v_i + 1;\n  EXIT WHEN v_i >= 10;\nEND LOOP;\n-- 条件循环：条件一开始为假则执行零次\nWHILE v_i < 10 LOOP\n  v_i := v_i + 1;\nEND LOOP;\n-- 数值 FOR：循环变量隐式声明\nFOR i IN 1..10 LOOP\n  DBMS_OUTPUT.PUT_LINE(i);\nEND LOOP;",
-          "dialect": "Oracle"
+          "title": "三种循环的完整示例",
+          "code": "DROP PROCEDURE IF EXISTS loop_demo;\nDELIMITER //\nCREATE PROCEDURE loop_demo()\nBEGIN\nDECLARE v_i INT DEFAULT 0;\n  count_loop: LOOP\n    SET v_i = v_i + 1;\n    IF v_i >= 10 THEN LEAVE count_loop; END IF;\n  END LOOP count_loop;\n  SELECT v_i AS loop_result;\n  SET v_i = 0;\n  WHILE v_i < 10 DO\n    SET v_i = v_i + 1;\n  END WHILE;\n  SELECT v_i AS while_result;\n  SET v_i = 0;\n  REPEAT\n    SET v_i = v_i + 1;\n  UNTIL v_i >= 10 END REPEAT;\n  SELECT v_i AS repeat_result;\nEND //\nDELIMITER ;\nCALL loop_demo();",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
-          "title": "边界检查",
-          "text": "判断顺序从严格范围到宽范围，否则高分会先落进较低分支。循环要明确初值、继续条件、每轮进展和终止条件；FOR 循环变量由系统管理，不需要自己声明或修改。"
+          "title": "循环的边界",
+          "text": "LOOP 通过带标签的 LEAVE 退出；WHILE 在每轮开始前判断条件；REPEAT 先执行一次，再检查 UNTIL 的结束条件。每种循环都应明确初值、每轮进展和终止条件。"
         },
         {
           "type": "tip",
-          "text": "PL/SQL 使用 ELSIF；MySQL 存储程序使用 ELSEIF。不要混用拼写。"
+          "text": "MySQL 没有数值 FOR i IN 1..10 循环，也没有游标 FOR 自动遍历。用 WHILE 或 LOOP 表达计数和遍历。"
         }
       ],
       "tags": [
-        "PL/SQL",
+        "MySQL 编程",
         "控制流"
       ],
       "minutes": 10
@@ -1324,59 +1329,58 @@
     {
       "id": "cursor",
       "module": "m6",
-      "title": "显式游标与游标 FOR 循环",
-      "summary": "把多行查询结果安全地逐行处理。",
+      "title": "MySQL 游标与结束条件",
+      "summary": "用游标、FETCH 和 NOT FOUND 处理器逐行处理查询结果。",
       "blocks": [
         {
           "type": "code",
-          "title": "显式游标的完整生命周期",
-          "code": "DECLARE\n  CURSOR c_scores IS SELECT sno, grade FROM SC WHERE cno = 'C01';\n  v_row c_scores%ROWTYPE;\nBEGIN\n  OPEN c_scores;\n  LOOP\n    FETCH c_scores INTO v_row;\n    EXIT WHEN c_scores%NOTFOUND;\n    DBMS_OUTPUT.PUT_LINE(v_row.sno || ':' || v_row.grade);\n  END LOOP;\n  CLOSE c_scores;\nEND;\n/",
-          "dialect": "Oracle"
+          "title": "游标的完整生命周期",
+          "code": "DROP PROCEDURE IF EXISTS print_course_scores;\nDELIMITER //\nCREATE PROCEDURE print_course_scores(IN p_cno VARCHAR(4))\nBEGIN\nDECLARE done BOOLEAN DEFAULT FALSE;\n  DECLARE v_sno VARCHAR(8);\n  DECLARE v_grade DECIMAL(5,2);\n  DECLARE c_scores CURSOR FOR\n    SELECT sno, grade FROM SC WHERE cno = p_cno ORDER BY sno;\n  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;\n  OPEN c_scores;\n  read_loop: LOOP\n    FETCH c_scores INTO v_sno, v_grade;\n    IF done THEN LEAVE read_loop; END IF;\n    SELECT v_sno AS sno, v_grade AS grade;\n  END LOOP read_loop;\n  CLOSE c_scores;\nEND //\nDELIMITER ;\nCALL print_course_scores('C01');",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "table",
-          "title": "游标属性",
+          "title": "四个步骤",
           "heads": [
-            "属性",
-            "作用"
+            "步骤",
+            "语句或作用"
           ],
           "rows": [
             [
-              "%ISOPEN",
-              "是否处于打开状态"
+              "声明",
+              "DECLARE c_scores CURSOR FOR SELECT ..."
             ],
             [
-              "%FOUND",
-              "最近一次 FETCH 是否取到行"
+              "打开",
+              "OPEN c_scores;"
             ],
             [
-              "%NOTFOUND",
-              "最近一次 FETCH 是否未取到行"
+              "提取",
+              "FETCH c_scores INTO v_sno, v_grade;"
             ],
             [
-              "%ROWCOUNT",
-              "已经成功提取的行数"
+              "关闭",
+              "CLOSE c_scores;"
             ]
           ]
         },
         {
-          "type": "code",
-          "title": "参数游标与自动管理",
-          "code": "DECLARE\n  CURSOR c_scores(p_cno SC.cno%TYPE) IS\n    SELECT sno, grade FROM SC WHERE cno = p_cno;\nBEGIN\n  FOR r IN c_scores('C01') LOOP\n    DBMS_OUTPUT.PUT_LINE(r.sno || ':' || r.grade);\n  END LOOP;\nEND;\n/",
-          "dialect": "Oracle"
+          "type": "text",
+          "title": "输入参数与游标查询",
+          "text": "示例的 p_cno 是存储过程输入参数，游标查询可以直接引用它。游标本身不定义参数。FETCH 的接收变量逐列声明，类型和数量应与 SELECT 列匹配。MySQL 游标只读，向前提取，不通过游标直接更新记录。"
         },
         {
           "type": "text",
-          "title": "为什么先 FETCH 再判断",
-          "text": "最后一次 FETCH 失败后，不能再把接收变量当成一条有效的新记录处理。把 EXIT WHEN 放在输出前，避免多处理一次。游标 FOR 循环会自动打开、提取和关闭，不要重复手工 OPEN。"
+          "title": "为什么先 FETCH 再检查 done",
+          "text": "最后一次 FETCH 找不到行时，NOT FOUND 处理器将 done 设为 TRUE；立即 LEAVE，不能继续处理接收变量中的旧值。完成后显式 CLOSE。"
         },
         {
           "type": "tip",
-          "text": "如果任务能用一条 UPDATE 完成，通常优先集合式 SQL。游标适合题目要求逐行输出或逐行差异处理的情况。"
+          "text": "声明顺序是变量／条件、游标、HANDLER。能用一条 UPDATE 统一完成的修改，通常优先集合式 SQL；逐行输出或不同处理才使用游标。"
         }
       ],
       "tags": [
-        "PL/SQL",
+        "MySQL 编程",
         "游标",
         "重点"
       ],
@@ -1390,9 +1394,9 @@
       "blocks": [
         {
           "type": "code",
-          "title": "用 OUT 返回选课数量",
-          "code": "CREATE OR REPLACE PROCEDURE get_course_count (\n  p_sno IN Student.sno%TYPE,\n  p_count OUT NUMBER\n) AS\nBEGIN\n  SELECT COUNT(*) INTO p_count FROM SC WHERE sno = p_sno;\nEND;\n/\nDECLARE\n  v_count NUMBER;\nBEGIN\n  get_course_count('S01', v_count);\n  DBMS_OUTPUT.PUT_LINE(v_count);\nEND;\n/",
-          "dialect": "Oracle"
+          "title": "通过 OUT 参数返回数量",
+          "code": "DROP PROCEDURE IF EXISTS get_course_count;\nDELIMITER //\nCREATE PROCEDURE get_course_count(IN p_sno VARCHAR(8), OUT p_count INT)\nBEGIN\nSELECT COUNT(*) INTO p_count FROM SC WHERE sno = p_sno;\nEND //\nDELIMITER ;\nCALL get_course_count('S01', @course_count);\nSELECT @course_count AS course_count;",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "table",
@@ -1404,30 +1408,30 @@
           "rows": [
             [
               "IN",
-              "输入，过程读取其值；默认模式"
+              "输入，可在过程内读取"
             ],
             [
               "OUT",
-              "输出结果给调用者"
+              "向调用者输出结果"
             ],
             [
-              "IN OUT",
-              "既提供初始值，也带回修改后的值"
+              "INOUT",
+              "既接收初值，又带回修改结果"
             ]
           ]
         },
         {
           "type": "text",
-          "title": "调用与定义分开",
-          "text": "CREATE OR REPLACE 编译并保存定义，不会自动执行业务。调用可以写在 BEGIN ... END 内；EXEC 是部分客户端提供的简便命令。命名传参可用 p_sno=>'S01'。过程可以有多个 OUT 参数，但没有函数形式的返回表达式。"
+          "title": "定义、调用与提前退出",
+          "text": "CREATE PROCEDURE 保存定义，CALL 才执行过程。参数模式写在参数名前面。OUT 参数可由会话变量 @course_count 接收；在另一个过程中也可用局部变量接收。需要提前退出过程时，给最外层程序块加标签，并用 LEAVE 标签名。"
         },
         {
           "type": "tip",
-          "text": "过程里 RETURN; 可以提前退出，但不能写 RETURN 某个值。需要一个表达式返回值时应定义函数。"
+          "text": "MySQL 不支持 CREATE OR REPLACE PROCEDURE。需要重建时先 DROP PROCEDURE IF EXISTS，再 CREATE PROCEDURE。过程可返回结果集或 OUT 参数；RETURN 表达式属于函数。"
         }
       ],
       "tags": [
-        "PL/SQL",
+        "MySQL 编程",
         "存储过程",
         "重点"
       ],
@@ -1442,13 +1446,13 @@
         {
           "type": "code",
           "title": "返回课程平均成绩",
-          "code": "CREATE OR REPLACE FUNCTION course_average (\n  p_cno IN Course.cno%TYPE\n) RETURN NUMBER AS\n  v_avg NUMBER;\nBEGIN\n  SELECT AVG(grade) INTO v_avg FROM SC WHERE cno = p_cno;\n  RETURN v_avg;\nEND;\n/\nSELECT course_average('C01') AS avg_grade FROM dual;",
-          "dialect": "Oracle"
+          "code": "DROP FUNCTION IF EXISTS course_average;\nDELIMITER //\nCREATE FUNCTION course_average(p_cno VARCHAR(4))\nRETURNS DECIMAL(6,2) READS SQL DATA\nBEGIN\nDECLARE v_avg DECIMAL(6,2);\n  SELECT AVG(grade) INTO v_avg FROM SC WHERE cno = p_cno;\n  RETURN v_avg;\nEND //\nDELIMITER ;\nSELECT course_average('C01') AS avg_grade;",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
-          "title": "用 AVG 而不是手算错分母",
-          "text": "AVG(grade) 只对非空成绩求平均。若 SUM(grade) 除以 COUNT(*)，未出分的记录也进分母，结果可能错误。没有非空成绩时返回 NULL，可以由业务明确决定是否用 NVL 变成 0。"
+          "title": "平均分与空值",
+          "text": "AVG(grade) 只统计非空成绩；用 SUM(grade)/COUNT(*) 会把未出分记录算进分母。没有任何已出分记录时返回 NULL；若业务明确要求返回 0，可用 COALESCE(v_avg,0)。"
         },
         {
           "type": "table",
@@ -1460,34 +1464,34 @@
           ],
           "rows": [
             [
-              "定义关键字",
+              "定义",
               "PROCEDURE",
-              "FUNCTION ... RETURN 类型"
+              "FUNCTION ... RETURNS 类型"
             ],
             [
-              "结果传出",
-              "OUT / IN OUT 等方式",
+              "结果",
+              "结果集、OUT / INOUT 参数",
               "RETURN 表达式"
             ],
             [
-              "典型用途",
-              "完成业务动作",
-              "计算一个结果"
+              "调用",
+              "CALL 名称(...)",
+              "SELECT 名称(...)"
             ],
             [
-              "调用方式",
-              "作为过程语句调用",
-              "作为表达式；符合 SQL 调用限制时可放在 SELECT 中"
+              "参数模式",
+              "IN / OUT / INOUT",
+              "输入参数，不写模式关键字"
             ]
           ]
         },
         {
           "type": "tip",
-          "text": "函数必须确保每个正常执行路径都有返回值。可从 SQL 调用的函数还受参数类型、副作用等限制，不能把任意函数都放入查询。"
+          "text": "函数的正常执行路径都应返回值。读取表的函数可声明 READS SQL DATA；不要把依赖表中数据的函数错误标为 DETERMINISTIC。函数不能直接返回普通多行 SELECT 结果集。"
         }
       ],
       "tags": [
-        "PL/SQL",
+        "MySQL 编程",
         "存储函数",
         "重点"
       ],
@@ -1496,32 +1500,37 @@
     {
       "id": "trigger",
       "module": "m6",
-      "title": "触发器、OLD / NEW 与审计",
-      "summary": "让数据事件自动触发动作，并避开变异表问题。",
+      "title": "MySQL 触发器、OLD / NEW 与审计",
+      "summary": "在数据事件发生时记录真实变化，正确处理 NULL。",
       "blocks": [
         {
           "type": "code",
-          "title": "记录成绩修改前后的值",
-          "code": "CREATE TABLE GradeAudit (\n  sno VARCHAR2(8), cno VARCHAR2(4),\n  old_grade NUMBER(5,2), new_grade NUMBER(5,2), changed_at DATE\n);\nCREATE OR REPLACE TRIGGER trg_grade_audit\nAFTER UPDATE OF grade ON SC\nFOR EACH ROW\nBEGIN\n  INSERT INTO GradeAudit(sno,cno,old_grade,new_grade,changed_at)\n  VALUES(:OLD.sno,:OLD.cno,:OLD.grade,:NEW.grade,SYSDATE);\nEND;\n/",
-          "dialect": "Oracle"
+          "title": "记录成绩变化",
+          "code": "CREATE TABLE GradeAudit (\n  sno VARCHAR(8), cno VARCHAR(4),\n  old_grade DECIMAL(5,2), new_grade DECIMAL(5,2), changed_at DATETIME\n);\nDELIMITER //\nCREATE TRIGGER trg_grade_audit\nAFTER UPDATE ON SC\nFOR EACH ROW\nBEGIN\n  IF NOT (OLD.grade <=> NEW.grade) THEN\n    INSERT INTO GradeAudit(sno,cno,old_grade,new_grade,changed_at)\n    VALUES(OLD.sno,OLD.cno,OLD.grade,NEW.grade,NOW());\n  END IF;\nEND //\nDELIMITER ;",
+          "dialect": "MySQL 8.0.16+"
         },
         {
           "type": "text",
-          "title": "触发时机与粒度",
-          "text": "BEFORE / AFTER 指定相对 DML 的时机；FOR EACH ROW 表示每个受影响行执行一次，不写则通常是语句级。UPDATE 中 :OLD 是修改前、:NEW 是修改后；INSERT 主要使用 :NEW，DELETE 主要使用 :OLD。触发器由事件自动执行，不手工传参调用。"
+          "title": "时机、事件与粒度",
+          "text": "MySQL 的表触发器使用 BEFORE 或 AFTER，事件为 INSERT、UPDATE、DELETE 之一，必须写 FOR EACH ROW。UPDATE 中 OLD.grade 是修改前，NEW.grade 是修改后，不加冒号。INSERT 使用 NEW，DELETE 使用 OLD。触发器由事件自动执行。"
         },
         {
           "type": "text",
-          "title": "不能在行触发器里随意查询本表",
-          "text": "Oracle 普通行级触发器中读取正在被修改的 SC 表，可能产生 ORA-04091 变异表错误。例如每改一行就在该触发器里重新查询 SC 汇总学分并不可靠。需要跨行汇总时，可用复合触发器在行阶段收集受影响学生、在 AFTER STATEMENT 阶段统一查询，或使用业务过程维护。"
+          "title": "只记录真实变化",
+          "text": "<=> 是 NULL 安全相等运算。NOT (OLD.grade <=> NEW.grade) 同时覆盖普通值变化、NULL 变为成绩、成绩变为 NULL，并跳过值未变化的 UPDATE。MySQL 没有 UPDATE OF grade 事件限定，需在触发器体中比较。"
+        },
+        {
+          "type": "text",
+          "title": "触发器限制与事务",
+          "text": "触发器不能直接返回结果集，不能执行 COMMIT、ROLLBACK 或开启新事务，也不能修改触发语句已经使用的表。审计写入其他 InnoDB 表时，与原修改属于同一事务；原事务回滚时，审计也回滚。"
         },
         {
           "type": "tip",
-          "text": "触发器中一般不能 COMMIT / ROLLBACK。审计插入与原始修改属于同一事务，原事务回滚时通常一并撤销。"
+          "text": "若需调整即将写入的列值，可在 BEFORE 触发器中 SET NEW.列名 = ...。不要在 SC 的触发器里再次 UPDATE SC。"
         }
       ],
       "tags": [
-        "PL/SQL",
+        "MySQL 编程",
         "触发器",
         "易错"
       ],
@@ -1662,7 +1671,7 @@
             "列函数依赖、候选码、最高范式及必要分解。",
             "按被引用表在前、引用表在后的顺序建表。",
             "写查询：连接、筛选、分组、并列与 NULL 边界逐项核对。",
-            "写 PL/SQL：参数、变量、结果行数、游标生命周期、异常、返回值逐项核对。"
+            "写 MySQL 存储程序：参数模式、变量类型、声明顺序、HANDLER、游标关闭、RETURN 与事务边界逐项核对。"
           ]
         },
         {
@@ -1691,11 +1700,11 @@
             ],
             [
               "过程／函数",
-              "IN/OUT、%TYPE、IS/AS、RETURN、异常"
+              "IN/OUT/INOUT、DECLARE、CALL、RETURNS/RETURN、HANDLER"
             ],
             [
               "触发器",
-              "事件、时机、行级粒度、OLD/NEW、变异表"
+              "BEFORE/AFTER、FOR EACH ROW、OLD/NEW、NULL 安全比较、事务限制"
             ]
           ]
         },

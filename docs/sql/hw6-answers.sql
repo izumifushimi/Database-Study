@@ -1,5 +1,4 @@
--- 上机 6 · 图书借阅与游标：MySQL 8.0.16+
--- 按题块执行；先载入对应数据集，不同数据集使用各自数据库。
+-- 上机 6 · 图书借阅与游标；MySQL 8.0.16+；按题块在对应数据集中执行。
 
 -- 1. 1 · 图书借阅建模与约束
 -- 数据集：library
@@ -157,6 +156,7 @@ WHERE b.borrowed_at >= '2026-10-01' AND b.borrowed_at < '2026-12-01'
 
 -- 13. 13 · 游标检查图书库存
 -- 数据集：library
+DROP PROCEDURE IF EXISTS check_book_stock;
 DELIMITER //
 CREATE PROCEDURE check_book_stock()
 BEGIN
@@ -180,6 +180,7 @@ CALL check_book_stock();
 
 -- 14. 14 · 游标提醒未归还
 -- 数据集：library
+DROP PROCEDURE IF EXISTS check_unreturned;
 DELIMITER //
 CREATE PROCEDURE check_unreturned()
 BEGIN
@@ -200,6 +201,7 @@ CALL check_unreturned();
 
 -- 15. 15 · 游标提醒距离到期不足一天
 -- 数据集：library
+DROP PROCEDURE IF EXISTS check_due_soon;
 DELIMITER //
 CREATE PROCEDURE check_due_soon()
 BEGIN
@@ -220,6 +222,7 @@ CALL check_due_soon();
 
 -- 16. 16 · 游标检查原材料库存
 -- 数据集：construction
+DROP PROCEDURE IF EXISTS check_material_stock;
 DELIMITER //
 CREATE PROCEDURE check_material_stock()
 BEGIN
