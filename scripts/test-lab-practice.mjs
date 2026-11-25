@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {readFile} from 'node:fs/promises';
+const Practice = createRequire(import.meta.url)('../web/lab-practice.js');
+const labs = JSON.parse(await readFile('content/labs.json', 'utf8'));
+const makeState = () => ({
+  done: {'db-system':true}, notes:{'db-system':'保留笔记'},
+  drafts:{lab1:labs[0].answer,lab2:'SELECT 2;', 'hw4:0':'保留上机草稿'},
+  labDone:{lab1:true,lab2:true}, labPractice:{}
+});
+const state=makeState();
+const notes=structuredClone(state.notes), done=structuredClone(state.done);
+Practice.restart(state,labs,['lab1']);
+assert.equal(state.drafts.lab1,labs[0].starter);
+assert.equal(state.labDone.lab1,undefined);
+assert.equal(state.labDone.lab2,true);
+assert.equal(state.labPractice.lab1.previousSql,labs[0].answer);
+assert.equal(state.labPractice.lab1.everPassed,true);
+assert.equal(state.labPractice.lab1.round,2);
+assert.equal(Practice.passedCount(state,labs),1);
+assert.equal(Practice.passedCount(state,labs,true),2);
+assert.deepEqual(state.notes,notes);
+assert.deepEqual(state.done,done);
+assert.equal(state.drafts['hw4:0'],'保留上机草稿');
+assert.equal(Practice.restore(state,'lab1'),labs[0].answer);
+assert.equal(state.labDone.lab1,undefined,'restoring code does not pass the exercise');
+Practice.grade(state,'lab1',false);
+assert.equal(state.labPractice.lab1.attempts,1);
+Practice.grade(state,'lab1',true);
+assert.equal(state.labPractice.lab1.attempts,2);
+assert.equal(state.labDone.lab1,true);
+Practice.grade(state,'lab1',false);
+assert.equal(state.labDone.lab1,true,'later edits do not erase a passed round');
+Practice.restart(state,labs,['lab1']);
+Practice.restart(state,labs,['lab1']);
+assert.equal(state.labPractice.lab1.previousSql,labs[0].answer,'restarting an untouched starter preserves prior code');
+assert.equal(state.labPractice.lab1.round,4);
+assert.equal(state.labPractice.lab1.attempts,0);
+Practice.restart(state,labs,labs.map(l=>l.id),{lab2:'SELECT 99 AS unsaved;'});
+assert.equal(Practice.passedCount(state,labs),0);
+assert.equal(Practice.passedCount(state,labs,true),2);
+assert.equal(state.labPractice.lab2.previousSql,'SELECT 99 AS unsaved;');
+for(const lab of labs)assert.equal(state.drafts[lab.id],lab.starter);
+const restored=Practice.clean(JSON.parse(JSON.stringify(state.labPractice)),labs);
+assert.deepEqual(restored,state.labPractice,'practice records survive JSON backup roundtrip');
+const malformed=Practice.clean({lab1:{round:-5,attempts:'5',everPassed:'true',previousSql:7},unknown:{round:100}},labs);
+assert.deepEqual(malformed,{lab1:{round:1,attempts:0,everPassed:false,previousSql:''}});
+const unchanged=makeState(), snapshot=structuredClone(unchanged);
+assert.throws(()=>Practice.restart(unchanged,labs,['lab1','lab2'],{lab2:'x'.repeat(100001)}));
+assert.deepEqual(unchanged,snapshot,'failed bulk restart is atomic');
+console.log('PASS repeated SQL practice: retry one/all, previous-code recovery, legacy progress, rounds, grading and backup validation.');

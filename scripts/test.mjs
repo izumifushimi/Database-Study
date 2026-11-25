@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import './test-lab-practice.mjs';
 import {readFile,stat} from 'node:fs/promises';
 import initSqlJs from 'sql.js';
 import {createRequire} from 'node:module';
