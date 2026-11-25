@@ -1,5 +1,318 @@
 [
   {
+    "id": "hw1",
+    "title": "上机 1 · 科研管理建表",
+    "label": "建表与关系设计",
+    "summary": "建立研究所、科研人员、项目与参与表，记录工作量，再练习插入和删除列。",
+    "minutes": 40,
+    "dialect": "MySQL 8.0.16+",
+    "schemas": [
+      "research"
+    ],
+    "requirement": "每名科研人员只属于一个研究所；本练习将每个项目也归属一个研究所。科研人员与项目为多对多，每组“职工号、项目号”记录汇总工作量。题目未限制科研人员只能参与本所项目，因此不增加该限制。个人信息示例用“学习者”和示例学号，执行时可自行替换。",
+    "tasks": [
+      {
+        "title": "1 · 创建科研管理表",
+        "prompt": "研究所有编号、名称、地址；科研人员有职工号、姓名、性别、年龄、职称；科研项目有项目号、项目名、经费。建立表和主外键，并记录人员参与项目的工作量。",
+        "answer": "研究所与科研人员、研究所与项目均按 1:n 转换，在 n 端保存研究所编号。人员与项目的 m:n 联系转为 research_participation，组合主键为 (staff_id,project_id)，工作量放在关联表。经费用 DECIMAL，职工号用字符型以容纳学号。下列数据用于让后续题目可直接练习。",
+        "code": "-- MySQL 8.0.16+；在独立学习数据库中执行。\n-- 每名科研人员和每个项目归属一个研究所；参与项目通过关联表记录工作量。\nCREATE TABLE institutes (\n  institute_id VARCHAR(10) PRIMARY KEY,\n  institute_name VARCHAR(60) NOT NULL,\n  address VARCHAR(100)\n);\nCREATE TABLE research_staff (\n  staff_id VARCHAR(20) PRIMARY KEY,\n  staff_name VARCHAR(40) NOT NULL,\n  sex VARCHAR(2) CHECK(sex IN ('男','女')),\n  age INT CHECK(age BETWEEN 0 AND 120),\n  title VARCHAR(30),\n  institute_id VARCHAR(10) NOT NULL,\n  FOREIGN KEY(institute_id) REFERENCES institutes(institute_id)\n);\nCREATE TABLE research_projects (\n  project_id VARCHAR(10) PRIMARY KEY,\n  project_name VARCHAR(80) NOT NULL,\n  funding DECIMAL(12,2) NOT NULL CHECK(funding>=0),\n  institute_id VARCHAR(10) NOT NULL,\n  FOREIGN KEY(institute_id) REFERENCES institutes(institute_id)\n);\nCREATE TABLE research_participation (\n  staff_id VARCHAR(20),\n  project_id VARCHAR(10),\n  workload DECIMAL(8,2) NOT NULL CHECK(workload>=0),\n  PRIMARY KEY(staff_id,project_id),\n  FOREIGN KEY(staff_id) REFERENCES research_staff(staff_id),\n  FOREIGN KEY(project_id) REFERENCES research_projects(project_id)\n);\nINSERT INTO institutes VALUES('I01','研究所一','南京'),('I02','研究所二','苏州');\nINSERT INTO research_staff VALUES('R001','研究员A','男',30,'助理研究员','I01'),('R002','研究员B','女',35,'研究员','I02');\nINSERT INTO research_projects VALUES('P001','课题一',100000,'I01'),('P002','课题二',200000,'I02');\nINSERT INTO research_participation VALUES('R001','P001',20),('R001','P002',10),('R002','P002',30);",
+        "dataset": "research",
+        "checks": [
+          "研究所、人员、项目和参与四表齐全",
+          "人员与项目正确引用所属研究所",
+          "参与表组合主键及两个外键正确",
+          "工作量属于参与关系，经费和工作量非负"
+        ]
+      },
+      {
+        "title": "2 · 插入自己的科研人员信息",
+        "prompt": "在科研人员表中插入自己的信息：职工号使用自己的学号，职称为“学生”。",
+        "answer": "先确认所属研究所已存在，再插入人员。示例学号、姓名、性别和年龄均为演示值，需要改成自己的信息；INSERT 明确列名，不依赖字段顺序。",
+        "code": "SET @my_student_no='202500000001';\nSET @my_name='学习者';\nINSERT INTO research_staff(staff_id,staff_name,sex,age,title,institute_id)\nVALUES(@my_student_no,@my_name,'男',20,'学生','I01');\nSELECT * FROM research_staff WHERE staff_id=@my_student_no;",
+        "dataset": "research",
+        "checks": [
+          "职工号采用自己的学号，避免与已有人员重复",
+          "职称填写“学生”",
+          "所属研究所编号已有对应记录",
+          "个人字段按实际信息替换"
+        ]
+      },
+      {
+        "title": "3 · 删除年龄属性",
+        "prompt": "删除科研人员表中的年龄属性。",
+        "answer": "这是修改表结构，应使用 ALTER TABLE ... DROP COLUMN；DELETE 删除的是行。删列后，后续 INSERT 和 SELECT 都要使用现有列。",
+        "code": "ALTER TABLE research_staff DROP COLUMN age;\nDESCRIBE research_staff;",
+        "dataset": "research",
+        "checks": [
+          "操作对象是 research_staff",
+          "使用 DROP COLUMN age",
+          "确认其余字段与主外键仍保留"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hw2",
+    "title": "上机 2 · 教学表填充与查询",
+    "label": "增删改与模式匹配",
+    "summary": "填入六条教学数据，删除年龄列，插入个人信息，练习数字匹配与姓名后缀。",
+    "minutes": 45,
+    "dialect": "MySQL 8.0.16+",
+    "schemas": [
+      "teaching"
+    ],
+    "requirement": "教学表字段为姓名、学号、班级、年龄、系名，按学号唯一标识学生。班级和学号采用字符型。按顺序练习时，第 4 题会删除年龄列，第 5 题按剩余四列插入；要保留年龄时，应先增加年龄列再插入。查询按实际当前数据返回结果。",
+    "tasks": [
+      {
+        "title": "1 · 创建教学表",
+        "prompt": "创建教学表，包含姓名、学号、班级、年龄和系名。",
+        "answer": "学号作为主键，姓名与班级不能为空，年龄设置合理范围。编号使用 VARCHAR，可以保留前导零和较长学号。",
+        "code": "-- MySQL 8.0.16+；学号与班级采用字符型以保留编码格式。\nCREATE TABLE teaching_students (\n  sno VARCHAR(20) PRIMARY KEY,\n  sname VARCHAR(40) NOT NULL,\n  class_name VARCHAR(30) NOT NULL,\n  age INT CHECK(age BETWEEN 0 AND 120),\n  dept VARCHAR(40)\n);",
+        "dataset": "teaching",
+        "checks": [
+          "五个字段完整",
+          "学号主键且采用字符型",
+          "年龄范围约束正确"
+        ]
+      },
+      {
+        "title": "2 · 填入六条样例数据",
+        "prompt": "向空表插入：张三、张46、张五、张66、张2七、张6；学号依次 1001～1006，班级均为 2401，年龄均为 21，系名均为智能系。",
+        "answer": "一条 INSERT 可包含多组 VALUES，列名顺序与每组数据一致。本题接着第 1 题的空表执行；已有相同学号时不要重复插入。",
+        "code": "INSERT INTO teaching_students(sname,sno,class_name,age,dept) VALUES\n('张三','1001','2401',21,'智能系'),\n('张46','1002','2401',21,'智能系'),\n('张五','1003','2401',21,'智能系'),\n('张66','1004','2401',21,'智能系'),\n('张2七','1005','2401',21,'智能系'),\n('张6','1006','2401',21,'智能系');",
+        "dataset": "teaching",
+        "checks": [
+          "六组姓名与学号对应正确",
+          "班级、年龄、系名填写一致",
+          "INSERT 列名与 VALUES 顺序一致"
+        ],
+        "setup": "schema-only"
+      },
+      {
+        "title": "3 · 显示表结构和数据",
+        "prompt": "显示创建并填充完成的教学表。",
+        "answer": "DESCRIBE 查看字段、类型和主键信息；SELECT 查询实际数据。按学号排序便于核对插入顺序。",
+        "code": "DESCRIBE teaching_students;\nSELECT * FROM teaching_students ORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "用 DESCRIBE 查看结构",
+          "用 SELECT 查看数据",
+          "结果包含六条初始样例记录"
+        ]
+      },
+      {
+        "title": "4 · 删除年龄列",
+        "prompt": "删除教学表中的年龄一列。",
+        "answer": "DROP COLUMN 修改结构并移除该列已有值。执行后表中只剩学号、姓名、班级和系名。",
+        "code": "ALTER TABLE teaching_students DROP COLUMN age;\nDESCRIBE teaching_students;",
+        "dataset": "teaching",
+        "checks": [
+          "删除列而不是删除学生记录",
+          "字段名与建表一致",
+          "确认年龄列已移除"
+        ]
+      },
+      {
+        "title": "5 · 插入自己的信息",
+        "prompt": "增加一行自己的姓名、学号、班级和系名；如果需要保存年龄，先确认年龄列存在。",
+        "answer": "接着第 4 题执行时，表中已经没有 age，因此按剩余四列插入。示例值应替换为自己的真实信息。若需要保留年龄，可先 ALTER TABLE teaching_students ADD COLUMN age INT，再使用包含 age 的列清单插入。",
+        "code": "SET @my_student_no='202500000001';\nSET @my_name='学习者';\nINSERT INTO teaching_students(sname,sno,class_name,dept)\nVALUES(@my_name,@my_student_no,'智能2501','智能系');\nSELECT * FROM teaching_students WHERE sno=@my_student_no;",
+        "dataset": "teaching",
+        "checks": [
+          "删除年龄后不再向 age 列插入",
+          "学号不与现有主键冲突",
+          "明确列名并替换个人信息"
+        ]
+      },
+      {
+        "title": "6 · 姓名中存在数字",
+        "prompt": "查询姓名中存在数字的学生姓名以及班级。",
+        "answer": "MySQL 可用 REGEXP 匹配数字字符。只输出题目要求的 sname 与 class_name，条件 [0-9] 表示任意一个阿拉伯数字。",
+        "code": "SELECT sname,class_name FROM teaching_students\nWHERE sname REGEXP '[0-9]'\nORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "使用数字正则表达式",
+          "输出姓名和班级两列",
+          "六条初始数据中有四条匹配"
+        ]
+      },
+      {
+        "title": "7 · 姓名中不存在数字",
+        "prompt": "查询姓名中不存在数字的学生全部信息。",
+        "answer": "NOT REGEXP 排除含数字的姓名。sname 已定义为 NOT NULL，不需要额外考虑 NULL 姓名。",
+        "code": "SELECT * FROM teaching_students\nWHERE sname NOT REGEXP '[0-9]'\nORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "用 NOT REGEXP 表示不匹配",
+          "输出全部字段",
+          "六条初始数据中张三、张五符合条件"
+        ]
+      },
+      {
+        "title": "8 · 姓名以 6 结尾",
+        "prompt": "查询姓名最后以“6”结尾的学生全部信息。",
+        "answer": "LIKE 的 % 匹配任意长度前缀，最后一位固定为 6；姓名中间含 6 但末尾不是 6 的记录不会匹配。",
+        "code": "SELECT * FROM teaching_students\nWHERE sname LIKE '%6'\nORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "6 写在模式的最后",
+          "% 表示任意长度前缀",
+          "初始数据匹配张46、张66和张6"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hw3",
+    "title": "上机 3 · 查询、基建统计与选课",
+    "label": "多表查询与汇总视图",
+    "summary": "练习正则查询和 UPDATE，建立基建统计视图，用两种连接方式查选齐全部课程的学生。",
+    "minutes": 75,
+    "dialect": "MySQL 8.0.16+",
+    "schemas": [
+      "teaching",
+      "construction-intro",
+      "student-selection"
+    ],
+    "requirement": "本组包含三个独立数据集：教学表、基建供需、学生选课。每个数据集使用独立的学习数据库。月份 202401 等采用该月 1 日存入 DATE 字段；供需表不重复保存项目地址。最高供应量按原材料累计数量统计，并保留所有并列第一。",
+    "tasks": [
+      {
+        "title": "教学 1 · 创建五字段教学表",
+        "prompt": "创建包含姓名、学号、班级、年龄、系名的教学表。",
+        "answer": "按学号唯一标识学生，年龄是普通属性，姓名允许重复。后面的 UPDATE 应优先通过学号精确定位。",
+        "code": "-- MySQL 8.0.16+；学号与班级采用字符型以保留编码格式。\nCREATE TABLE teaching_students (\n  sno VARCHAR(20) PRIMARY KEY,\n  sname VARCHAR(40) NOT NULL,\n  class_name VARCHAR(30) NOT NULL,\n  age INT CHECK(age BETWEEN 0 AND 120),\n  dept VARCHAR(40)\n);",
+        "dataset": "teaching",
+        "checks": [
+          "五个字段齐全",
+          "学号为主键",
+          "姓名允许重复"
+        ]
+      },
+      {
+        "title": "教学 2 · 插入六条数据",
+        "prompt": "插入张三、张46、张五、张66、张2七、张6，学号依次 1001～1006；班级 2401、年龄 21、系名智能系。",
+        "answer": "本题在上一题创建的空表上执行。使用列清单，逐行核对学号与姓名。",
+        "code": "INSERT INTO teaching_students(sname,sno,class_name,age,dept) VALUES\n('张三','1001','2401',21,'智能系'),\n('张46','1002','2401',21,'智能系'),\n('张五','1003','2401',21,'智能系'),\n('张66','1004','2401',21,'智能系'),\n('张2七','1005','2401',21,'智能系'),\n('张6','1006','2401',21,'智能系');",
+        "dataset": "teaching",
+        "checks": [
+          "六条数据完整",
+          "每个学号唯一",
+          "列顺序正确"
+        ],
+        "setup": "schema-only"
+      },
+      {
+        "title": "教学 3 · 查询含数字姓名",
+        "prompt": "查询姓名存在数字的学生姓名以及班级。",
+        "answer": "REGEXP 的 [0-9] 检查是否含任意数字，无需在两侧额外加 %。",
+        "code": "SELECT sname,class_name FROM teaching_students WHERE sname REGEXP '[0-9]' ORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "使用 REGEXP 而非 LIKE 的字符集写法",
+          "只输出姓名和班级"
+        ]
+      },
+      {
+        "title": "教学 4 · 查询不含数字姓名",
+        "prompt": "查询姓名不存在数字的学生全部信息。",
+        "answer": "使用 NOT REGEXP 取不包含数字的记录。",
+        "code": "SELECT * FROM teaching_students WHERE sname NOT REGEXP '[0-9]' ORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "使用 NOT REGEXP",
+          "输出全部字段"
+        ]
+      },
+      {
+        "title": "教学 5 · 查询以 6 结尾的姓名",
+        "prompt": "查询姓名最后以“6”结尾的学生全部信息。",
+        "answer": "LIKE 的模式 %6 限定最后一位为 6。",
+        "code": "SELECT * FROM teaching_students WHERE sname LIKE '%6' ORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "通配符位置正确",
+          "保留所有匹配学生"
+        ]
+      },
+      {
+        "title": "教学 6 · UPDATE 为自己的信息",
+        "prompt": "用 UPDATE 将“张66”的信息修改为自己的姓名、学号、班级、年龄和系名，再显示表中数据。",
+        "answer": "先由样例确定张66的学号为 1004，再以主键定位，避免未来出现重名时误改多行。更新后的示例学号不能与其他学生重复，示例姓名、班级和年龄可自行替换。",
+        "code": "SET @my_student_no='202500000001';\nSET @my_name='学习者';\nUPDATE teaching_students\nSET sname=@my_name,sno=@my_student_no,class_name='智能2501',age=20,dept='智能系'\nWHERE sno='1004' AND sname='张66';\nSELECT * FROM teaching_students ORDER BY sno;",
+        "dataset": "teaching",
+        "checks": [
+          "UPDATE 带明确 WHERE",
+          "修改五个字段",
+          "新学号不与其他行冲突",
+          "展示更新后的表"
+        ]
+      },
+      {
+        "title": "基建 1 · 建立四表并插入数据",
+        "prompt": "按项目、供应商、原材料、供需四个模块建表，设置主外键，并插入项目1～3、供应商1～3、材料1～3及对应供需数据。",
+        "answer": "单价使用 DECIMAL，库存和供应数量用整数。先创建项目与原材料，再创建供应商和供需；外键约束供应商供应其登记的材料。项目地址由 projects 管理，通过连接查询取得。",
+        "code": "-- MySQL 8.0.16+；上机 3 的项目、供应商、原材料和供需样例。\nCREATE TABLE projects (\n  p_number VARCHAR(20) PRIMARY KEY,p_name VARCHAR(60) NOT NULL,\n  p_address VARCHAR(100),p_start_time DATE,\n  p_state VARCHAR(20) NOT NULL CHECK(p_state IN ('未开始','施工中','已交付'))\n);\nCREATE TABLE materials (\n  m_number VARCHAR(10) PRIMARY KEY,m_name VARCHAR(60) NOT NULL,\n  m_category VARCHAR(30),m_price DECIMAL(10,2) NOT NULL CHECK(m_price>=0),\n  m_put_place VARCHAR(100),m_put_count INT NOT NULL CHECK(m_put_count>=0)\n);\nCREATE TABLE suppliers (\n  s_number VARCHAR(10) PRIMARY KEY,s_name VARCHAR(60) NOT NULL,\n  s_material VARCHAR(10) NOT NULL,\n  FOREIGN KEY(s_material) REFERENCES materials(m_number),\n  UNIQUE(s_number,s_material)\n);\nCREATE TABLE provides (\n  pr_p_number VARCHAR(20),pr_s_number VARCHAR(10),pr_m_number VARCHAR(10),\n  pr_count INT NOT NULL CHECK(pr_count>0),\n  PRIMARY KEY(pr_p_number,pr_s_number,pr_m_number),\n  FOREIGN KEY(pr_p_number) REFERENCES projects(p_number),\n  FOREIGN KEY(pr_s_number,pr_m_number) REFERENCES suppliers(s_number,s_material)\n);\nINSERT INTO projects VALUES\n('PJNO000000001','项目1','南京','2024-01-01','未开始'),\n('PJNO000000002','项目2','无锡','2024-02-01','施工中'),\n('PJNO000000003','项目3','常州','2024-03-01','已交付');\nINSERT INTO materials VALUES\n('M001','材料1','类别1',20,'地点1',100),\n('M002','材料2','类别2',10,'地点2',200),\n('M003','材料3','类别3',30,'地点3',300);\nINSERT INTO suppliers VALUES('S001','供应商1','M001'),('S002','供应商2','M002'),('S003','供应商3','M003');\nINSERT INTO provides VALUES\n('PJNO000000001','S001','M001',50),\n('PJNO000000002','S002','M002',40),\n('PJNO000000003','S003','M003',30);",
+        "dataset": "construction-intro",
+        "checks": [
+          "四个模块及主外键齐全",
+          "供应数量和库存为数值型",
+          "月份转换为明确日期",
+          "先插被引用表，再插供需表"
+        ]
+      },
+      {
+        "title": "基建 2 · 统计各种项目状态数量",
+        "prompt": "查询未开始、施工中、已交付三种状态下的项目数量。",
+        "answer": "先列出三种状态，再 LEFT JOIN 项目表；即使某状态没有项目，也返回数量 0。COUNT(p_number) 只计算真实匹配项目，不计空补齐行。",
+        "code": "SELECT status_list.project_state,COUNT(p.p_number) AS project_count\nFROM (\n  SELECT '未开始' AS project_state\n  UNION ALL SELECT '施工中'\n  UNION ALL SELECT '已交付'\n) status_list\nLEFT JOIN projects p ON p.p_state=status_list.project_state\nGROUP BY status_list.project_state\nORDER BY CASE status_list.project_state\n  WHEN '未开始' THEN 1 WHEN '施工中' THEN 2 ELSE 3 END;",
+        "dataset": "construction-intro",
+        "checks": [
+          "三种状态均显示",
+          "按状态分组",
+          "零项目状态返回 0"
+        ]
+      },
+      {
+        "title": "基建 3 · 供应数量最多的原材料视图",
+        "prompt": "创建视图，显示供应数量最多的原材料信息。",
+        "answer": "按原材料汇总 SUM(pr_count)，再与最大汇总量比较；不能用最大单笔供货量代替总供应量。等于最大值会保留全部并列第一。",
+        "code": "CREATE VIEW top_supplied_material_intro AS\nSELECT m.*,q.supplied_quantity\nFROM materials m\nJOIN (\n  SELECT pr_m_number,SUM(pr_count) AS supplied_quantity\n  FROM provides GROUP BY pr_m_number\n) q ON q.pr_m_number=m.m_number\nWHERE q.supplied_quantity=(\n  SELECT MAX(total_quantity) FROM (\n    SELECT SUM(pr_count) AS total_quantity\n    FROM provides GROUP BY pr_m_number\n  ) totals\n);",
+        "dataset": "construction-intro",
+        "checks": [
+          "按材料 SUM 供应数量",
+          "输出材料完整信息",
+          "保留全部并列最高者"
+        ]
+      },
+      {
+        "title": "选课 1 · 内连接与分组",
+        "prompt": "学生表含学号、姓名、年龄、性别、出生日期；课程表含课程号、课程名、授课老师；成绩表含学号、课程号、成绩。用内连接和分组查询选修了所有课程的学生学号和姓名。",
+        "answer": "连接学生、成绩和课程后，按学生分组，用 COUNT(DISTINCT cno) 比较课程总数。成绩为空仍表示已经选课。末尾 UNION 分支补充课程表为空时的全体学生结果；课程表非空时该分支不返回行。",
+        "code": "SELECT s.sno,s.sname\nFROM students s\nINNER JOIN scores sc ON sc.sno=s.sno\nINNER JOIN courses c ON c.cno=sc.cno\nGROUP BY s.sno,s.sname\nHAVING COUNT(DISTINCT c.cno)=(SELECT COUNT(*) FROM courses)\nUNION\nSELECT s.sno,s.sname FROM students s\nWHERE NOT EXISTS (SELECT 1 FROM courses);",
+        "dataset": "student-selection",
+        "checks": [
+          "按学号和姓名分组",
+          "去重统计已选课程号",
+          "与课程总数比较",
+          "不把未出分当成未选课"
+        ]
+      },
+      {
+        "title": "选课 2 · 左连接查询全部课程",
+        "prompt": "使用左连接方式查询选修了所有课程的学生学号和姓名。",
+        "answer": "从 students 开始 LEFT JOIN，保留尚未选课的学生。COUNT(c.cno) 不计空补齐记录。课程表为空时，0=0，所有学生都满足“没有遗漏任何课程”。",
+        "code": "SELECT s.sno,s.sname\nFROM students s\nLEFT JOIN scores sc ON sc.sno=s.sno\nLEFT JOIN courses c ON c.cno=sc.cno\nGROUP BY s.sno,s.sname\nHAVING COUNT(DISTINCT c.cno)=(SELECT COUNT(*) FROM courses);",
+        "dataset": "student-selection",
+        "checks": [
+          "从学生表开始左连接",
+          "COUNT 忽略空补齐行",
+          "按学生分组并使用 HAVING",
+          "空课程表时保留所有学生"
+        ]
+      }
+    ]
+  },
+  {
     "id": "hw4",
     "title": "上机 4 · 基建与快递管理",
     "label": "建模与多表查询",

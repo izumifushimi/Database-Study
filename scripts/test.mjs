@@ -6,11 +6,12 @@ import {createRequire} from 'node:module';
 const {assertDemoQuery}=createRequire(import.meta.url)('../web/query-guard.js');
 const read=async n=>JSON.parse(await readFile(`content/${n}.json`,'utf8'));
 const [course,quiz,labs,cases,homework]=await Promise.all(['course','quiz','labs','cases','homework'].map(read));
-assert.equal(course.lessons.length,31);assert.equal(quiz.length,42);assert.equal(labs.length,10);assert.equal(homework.reduce((n,g)=>n+g.tasks.length,0),32);
+assert.equal(course.lessons.length,31);assert.equal(quiz.length,42);assert.equal(labs.length,10);assert.equal(homework.reduce((n,g)=>n+g.tasks.length,0),54);
+assert.deepEqual(homework.map(g=>g.id),['hw1','hw2','hw3','hw4','hw5','hw6','hw78']);
 for(const list of [course.modules,course.lessons,quiz,labs,cases,homework])assert.equal(new Set(list.map(x=>x.id)).size,list.length,'IDs must be unique');
 for(const l of course.lessons){assert(course.modules.some(m=>m.id===l.module));assert(l.blocks.length>=3);}
 for(const q of quiz){assert(q.options[q.answer]);assert(q.explanation.trim().length>0);}
-for(const g of homework){assert(g.tasks.every(t=>t.code&&t.answer&&t.dataset));for(const s of g.schemas)assert((await stat(`docs/sql/${s}.sql`)).size>100);}
+for(const g of homework){assert(g.tasks.every(t=>t.code&&t.answer&&g.schemas.includes(t.dataset)));for(const s of g.schemas)assert((await stat(`docs/sql/${s}.sql`)).size>100);assert((await stat(`docs/sql/${g.id}-answers.sql`)).size>100);}
 const SQL=await initSqlJs();const seed=await readFile('content/seed.sql','utf8');
 for(const l of labs){const db=new SQL.Database();db.run('PRAGMA foreign_keys=ON;');db.run(seed);const r=db.exec(l.answer);assert.equal(r.length,1,l.id);assert(r[0].values.length>0,l.id+' must have observable results');db.close();}
 const db=new SQL.Database();db.run('PRAGMA foreign_keys=ON;');db.run(seed);
@@ -25,11 +26,11 @@ assert.deepEqual(db.exec(labs[8].answer)[0].values.find(r=>r[0]==='S05'),['S05',
 db.close();
 // Run portable homework SELECTs / window views against SQLite with adapted MySQL DDL.
 const schemas=new Map();
-for(const name of ['construction','parcel','sales','library','ecommerce']){
+for(const name of new Set(homework.flatMap(g=>g.schemas))){
  let sql=await readFile(`docs/sql/${name}.sql`,'utf8');
  sql=sql.replace(/CHAR_LENGTH/g,'LENGTH');
  sql=sql.replace(/BINARY LEFT\((\w+),4\)=BINARY ('[^']*')/g,'substr($1,1,4)=$2');
- const d=new SQL.Database();d.create_function('CONCAT',(...s)=>s.join(''));d.run('PRAGMA foreign_keys=ON;');d.run(sql);schemas.set(name,d);
+ const d=new SQL.Database();d.create_function('CONCAT',(...s)=>s.join(''));d.create_function('REGEXP',(pattern,value)=>value===null?null:Number(new RegExp(pattern).test(value)));d.run('PRAGMA foreign_keys=ON;');d.run(sql);schemas.set(name,d);
 }
 let checked=0;
 for(const g of homework)for(const t of g.tasks){if(!/^\s*(SELECT|CREATE VIEW)/.test(t.code))continue;const d=schemas.get(t.dataset);d.exec(t.code);checked++;}

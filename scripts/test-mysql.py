@@ -86,9 +86,42 @@ try:
         for task in group['tasks']:
             sql=task['code']
             setup='' if re.search(r'^CREATE TABLE',sql,re.M) else Path('docs/sql/'+task['dataset']+'.sql').read_text()
+            if task.get('setup') == 'schema-only': setup = setup.split('INSERT INTO',1)[0]
             hdb=fresh(setup)
             run(sql,hdb)
             tasks += 1
+    # Check the new beginner tasks in sequence as well as in isolated databases.
+    hw = {g['id']: g['tasks'] for g in homework}
+    research = fresh()
+    for task in hw['hw1']: run(task['code'], research)
+    assert run("SELECT COUNT(*) FROM research_staff WHERE title='学生';",research) == '1'
+    assert run("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='research_staff' AND column_name='age';",research) == '0'
+    assert Decimal(run("SELECT SUM(workload) FROM research_participation WHERE staff_id='R001';",research)) == 30
+    assert '1452' in run("INSERT INTO research_projects VALUES('bad','无所属项目',1,'missing');",research,fail=True)
+    teaching = fresh()
+    for task in hw['hw2']: run(task['code'],teaching)
+    assert run('SELECT COUNT(*) FROM teaching_students;',teaching) == '7'
+    assert run("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='teaching_students' AND column_name='age';",teaching) == '0'
+    teaching = fresh(Path('docs/sql/teaching.sql').read_text())
+    assert len(run(hw['hw2'][5]['code'],teaching).splitlines()) == 4
+    assert len(run(hw['hw2'][6]['code'],teaching).splitlines()) == 2
+    assert len(run(hw['hw2'][7]['code'],teaching).splitlines()) == 3
+    run(hw['hw3'][5]['code'],teaching)
+    assert run('SELECT COUNT(*) FROM teaching_students;',teaching) == '6'
+    assert run("SELECT COUNT(*) FROM teaching_students WHERE sno='1004';",teaching) == '0'
+    assert run("SELECT sname FROM teaching_students WHERE sno='202500000001';",teaching) == '学习者'
+    construction = fresh(Path('docs/sql/construction-intro.sql').read_text())
+    assert run(hw['hw3'][7]['code'],construction).splitlines() == ['未开始\t1','施工中\t1','已交付\t1']
+    run(hw['hw3'][8]['code'],construction)
+    run("INSERT INTO provides VALUES('PJNO000000002','S001','M001',20),('PJNO000000003','S002','M002',30);",construction)
+    assert run('SELECT m_number,supplied_quantity FROM top_supplied_material_intro ORDER BY m_number;',construction).splitlines() == ['M001\t70','M002\t70']
+    run("DELETE FROM provides WHERE pr_p_number='PJNO000000003'; DELETE FROM projects WHERE p_state='已交付';",construction)
+    assert run(hw['hw3'][7]['code'],construction).splitlines()[-1] == '已交付\t0'
+    selection = fresh(Path('docs/sql/student-selection.sql').read_text())
+    for task in hw['hw3'][-2:]:
+        assert sorted(run(task['code'],selection).splitlines()) == ['S01\t学生A','S04\t学生D']
+    run('DELETE FROM scores; DELETE FROM courses;',selection)
+    for task in hw['hw3'][-2:]: assert len(run(task['code'],selection).splitlines()) == 4
     lab = fresh(seed)
     for l in labs:
         assert run(l['answer'],lab), 'Empty reference result: ' + l['id']
@@ -96,7 +129,7 @@ try:
     assert len(run(labs[6]['answer'],lab).splitlines()) == 6
     assert '3819' in run("INSERT INTO SC VALUES('S05','C01',101);",lab,fail=True)
     assert '1062' in run("INSERT INTO SC VALUES('S01','C01',50);",lab,fail=True)
-    print(f'PASS native MySQL: {examples} lesson examples, {tasks} homework answers, 3 complete case scripts, {len(labs)} lab references; OUT, zero-row, NULL, duplicate/FK/CHECK, audit and rollback behavior.', flush=True)
+    print(f'PASS native MySQL: {examples} lesson examples, {tasks} homework answers, 3 complete case scripts, {len(labs)} lab references; sequential beginner tasks, REGEXP, zero-count states, cumulative ties, all-course/empty-course behavior, OUT, NULL, duplicate/FK/CHECK, audit and rollback.', flush=True)
 finally:
     for name in created:
         run('DROP DATABASE IF EXISTS `' + name + '`;')

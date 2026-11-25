@@ -1,11 +1,11 @@
 # 数据库研习室
 
-根据数据库课件、考试重点和上机 4–8 练习整理的中文学习网站。
+根据数据库课件、考试重点和上机 1–8 练习整理的中文学习网站。
 
 [打开公开学习网站](https://izumifushimi.github.io/Database-Study/) · [GitHub 公开源码仓库](https://github.com/izumifushimi/Database-Study)
 
 - 6 个课程模块、31 节讲解，包含关系代数、SQL、规范化、MySQL 存储程序 与数据库设计。
-- 4 组上机练习、32 个任务，提供 MySQL 8.0.16+ 参考解法、建表数据与自评清单。
+- 7 组上机练习、54 个任务，提供 MySQL 8.0.16+ 参考解法、建表数据与自评清单。
 - 10 道 MySQL 通用 SELECT / WITH 查询练习，浏览器以 sql.js / SQLite 做兼容演示；完整 MySQL 实验脚本可下载。
 - 3 个综合案例、14 个分步任务，以及 42 道带解析的概念自测。
 - 全文搜索、课程进度、错题记录、自动保存草稿、JSON 备份导入导出；适配手机。
@@ -80,7 +80,8 @@ MYSQL_TEST_SOCKET=/你的/mysql.sock npm run test:mysql
 - `docs/mysql-programming.sql`：第 6 章完整存储程序示例，先运行选课案例建表。
 - `docs/mysql-lab.sql`：在线查询练习对应的完整 MySQL 数据与答案。
 - `docs/sql/library-case.sql`、`docs/sql/employee-case.sql`：图书与薪资综合案例。
-- `docs/sql/*-answers.sql`：上机 4–8 参考答案，按题块和对应数据集执行。
+- `docs/sql/research.sql`、`teaching.sql`、`construction-intro.sql`、`student-selection.sql`：上机 1–3 的建表与样例数据。
+- `docs/sql/*-answers.sql`：上机 1–8 参考答案，按题块和对应数据集执行。
 
 ## 查询题重复练习
 
